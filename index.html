@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ultimate Angler Species Tracker</title>
+<title>Fish Tracker</title>
 <style>
     * { box-sizing: border-box; }
     body {
@@ -67,19 +67,20 @@
         display: flex;
         gap: 10px;
         flex-wrap: wrap;
+        align-items: center;
     }
-    input[type="search"], select {
+    input[type="search"], select, input[type="date"], input[type="text"] {
         border: 1px solid #2c6070;
         background: #08212c;
         color: white;
         border-radius: 8px;
         padding: 10px 14px;
         outline: none;
-        font-size: 15px;
+        font-size: 14px;
     }
     input[type="search"] { flex: 2; min-width: 200px; }
     select { min-width: 150px; }
-    input[type="search"]:focus { border-color: #20c5dd; }
+    input[type="search"]:focus, select:focus, input:focus { border-color: #20c5dd; }
 
     button {
         border: 0;
@@ -89,9 +90,12 @@
         color: white;
         background: #0e6375;
         cursor: pointer;
+        transition: background .15s ease;
     }
     button:hover { background: #157d92; }
     button.active { background: #20c5dd; color: #06151d; }
+    button.secondary { background: #1b4b5b; }
+    button.secondary:hover { background: #28677c; }
     button.danger { background: #8b3232; }
     button.danger:hover { background: #aa3d3d; }
 
@@ -164,6 +168,24 @@
     }
     .caught-label { margin-left: auto; font-size: 10px; font-weight: 900; color: #56e0ad; letter-spacing: 0.5px; }
 
+    .catch-details {
+        margin-top: 6px;
+        padding-top: 10px;
+        border-top: 1px solid rgba(255, 255, 255, 0.12);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .catch-details-row {
+        display: flex;
+        gap: 8px;
+    }
+    .catch-details input {
+        font-size: 12px;
+        padding: 6px 10px;
+        width: 100%;
+    }
+
     #empty { display: none; text-align: center; padding: 40px; opacity: .7; }
 </style>
 </head>
@@ -171,8 +193,7 @@
 <body>
 
 <header>
-    <h1>🎣 Master Angler Fish Index</h1>
-    <p>148-Species Directory with Verified Species Photos</p>
+    <h1>🎣 Fish Tracker 🎣</h1>
 </header>
 
 <main class="container">
@@ -199,6 +220,9 @@
         <button id="btn-all" class="active" onclick="setFilter('all')">All</button>
         <button id="btn-caught" onclick="setFilter('caught')">Caught</button>
         <button id="btn-uncaught" onclick="setFilter('uncaught')">Uncaught</button>
+        <button class="secondary" onclick="exportData()">Export Data</button>
+        <button class="secondary" onclick="document.getElementById('importFile').click()">Import Data</button>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
         <button class="danger" onclick="resetCaught()">Reset Progress</button>
     </section>
 
@@ -212,15 +236,506 @@
 const STORAGE_KEY_CAUGHT = "guidesly_master_caught_v148";
 
 const BASE_SPECIES = [
-    // FRESHWATER
+    { common: "African Pompano", scientific: "Alectis ciliaris", cat: "Saltwater Offshore" },
+    { common: "Alabama Bass", scientific: "Micropterus henshalli", cat: "Freshwater" },
+    { common: "Alaska Pollock", scientific: "Gadus chalcogrammus", cat: "Saltwater Offshore" },
+    { common: "Albacore", scientific: "Thunnus alalunga", cat: "Saltwater Offshore" },
+    { common: "Alewife", scientific: "Alosa pseudoharengus", cat: "Freshwater" },
+    { common: "Alligator Gar", scientific: "Atractosteus spatula", cat: "Freshwater" },
+    { common: "American Eel", scientific: "Anguilla rostrata", cat: "Freshwater" },
+    { common: "American Shad", scientific: "Alosa sapidissima", cat: "Freshwater" },
+    { common: "Angel Shark", scientific: "Squatina squatina", cat: "Sharks & Rays" },
+    { common: "Apache Trout", scientific: "Oncorhynchus apache", cat: "Freshwater" },
+    { common: "Arafura Filefish", scientific: "Paramonacanthus choirocephalus", cat: "Saltwater Inshore" },
+    { common: "Arapaima", scientific: "Arapaima gigas", cat: "Freshwater" },
+    { common: "Archerfish", scientific: "Toxotes jaculatrix", cat: "Freshwater" },
+    { common: "Arctic Char", scientific: "Salvelinus alpinus", cat: "Freshwater" },
+    { common: "Arctic Grayling", scientific: "Thymallus arcticus", cat: "Freshwater" },
+    { common: "Atlantic Bluefin Tuna", scientific: "Thunnus thynnus", cat: "Saltwater Offshore" },
+    { common: "Atlantic Bonito", scientific: "Sarda sarda", cat: "Saltwater Offshore" },
+    { common: "Atlantic Cod", scientific: "Gadus morhua", cat: "Saltwater Offshore" },
+    { common: "Atlantic Croaker", scientific: "Micropogonias undulatus", cat: "Saltwater Inshore" },
+    { common: "Atlantic Halibut", scientific: "Hippoglossus hippoglossus", cat: "Saltwater Offshore" },
+    { common: "Atlantic Mackerel", scientific: "Scomber scombrus", cat: "Saltwater Offshore" },
+    { common: "Atlantic Menhaden", scientific: "Brevoortia tyrannus", cat: "Saltwater Inshore" },
+    { common: "Atlantic Needlefish", scientific: "Strongylura marina", cat: "Saltwater Inshore" },
+    { common: "Atlantic Salmon", scientific: "Salmo salar", cat: "Freshwater" },
+    { common: "Atlantic Sharpnose Shark", scientific: "Rhizoprionodon terraenovae", cat: "Sharks & Rays" },
+    { common: "Atlantic Silverside", scientific: "Menidia menidia", cat: "Saltwater Inshore" },
+    { common: "Atlantic Stingray", scientific: "Hypanus sabinus", cat: "Sharks & Rays" },
+    { common: "Atlantic Sturgeon", scientific: "Acipenser oxyrinchus", cat: "Freshwater" },
+    { common: "Atlantic Threadfin", scientific: "Polydactylus octonemus", cat: "Saltwater Inshore" },
+    { common: "Atlantic Torpedo", scientific: "Tetronarce nobiliana", cat: "Sharks & Rays" },
+    { common: "Atlantic Tripletail", scientific: "Lobotes surinamensis", cat: "Saltwater Inshore" },
+    { common: "Australian Bass", scientific: "Macquaria novemaculeata", cat: "Freshwater" },
+    { common: "Banded Killifish", scientific: "Fundulus diaphanus", cat: "Freshwater" },
+    { common: "Banded Rudderfish", scientific: "Seriola zonata", cat: "Saltwater Offshore" },
+    { common: "Barramundi", scientific: "Lates calcarifer", cat: "Freshwater" },
+    { common: "Barramundi Cod", scientific: "Cromileptes altivelis", cat: "Saltwater Offshore" },
+    { common: "Barred Sand Bass", scientific: "Paralabrax nebulifer", cat: "Saltwater Inshore" },
+    { common: "Barred Surfperch", scientific: "Amphistichus argenteus", cat: "Saltwater Inshore" },
+    { common: "Barrelfish", scientific: "Hyperoglyphe perciformis", cat: "Saltwater Offshore" },
+    { common: "Basking Shark", scientific: "Cetorhinus maximus", cat: "Sharks & Rays" },
+    { common: "Bermuda Chub", scientific: "Kyphosus sectatrix", cat: "Saltwater Inshore" },
+    { common: "Bighead Carp", scientific: "Hypophthalmichthys nobilis", cat: "Freshwater" },
+    { common: "Bigmouth Buffalo", scientific: "Ictiobus cyprinellus", cat: "Freshwater" },
+    { common: "Black Buffalo", scientific: "Ictiobus niger", cat: "Freshwater" },
+    { common: "Black Bullhead", scientific: "Ameiurus melas", cat: "Freshwater" },
+    { common: "Black Crappie", scientific: "Pomoxis nigromaculatus", cat: "Freshwater" },
+    { common: "Black Drum", scientific: "Pogonias cromis", cat: "Saltwater Inshore" },
+    { common: "Black Grouper", scientific: "Mycteroperca bonaci", cat: "Saltwater Offshore" },
+    { common: "Black Marlin", scientific: "Istiompax indica", cat: "Saltwater Offshore" },
+    { common: "Black Porgy", scientific: "Acanthopagrus schlegelii", cat: "Saltwater Inshore" },
+    { common: "Black Rockfish", scientific: "Sebastes melanops", cat: "Saltwater Offshore" },
+    { common: "Black Scabbardfish", scientific: "Aphanopus carbo", cat: "Saltwater Offshore" },
+    { common: "Black Sea Bass", scientific: "Centropristis striata", cat: "Saltwater Inshore" },
+    { common: "Black Seabream", scientific: "Spondyliosoma cantharus", cat: "Saltwater Inshore" },
+    { common: "Black-tail Redhorse", scientific: "Moxostoma poecilurum", cat: "Freshwater" },
+    { common: "Blackfin Tuna", scientific: "Thunnus atlanticus", cat: "Saltwater Offshore" },
+    { common: "Blacktip Shark", scientific: "Carcharhinus limbatus", cat: "Sharks & Rays" },
+    { common: "Blind Cave Fish", scientific: "Astyanax mexicanus", cat: "Freshwater" },
+    { common: "Blue Catfish", scientific: "Ictalurus furcatus", cat: "Freshwater" },
+    { common: "Blue Jack Mackerel", scientific: "Trachurus picturatus", cat: "Saltwater Offshore" },
+    { common: "Blue Mako", scientific: "Isurus glaucus", cat: "Sharks & Rays" },
+    { common: "Blue Parrotfish", scientific: "Scarus coeruleus", cat: "Saltwater Inshore" },
+    { common: "Blue Runner", scientific: "Caranx crysos", cat: "Saltwater Inshore" },
+    { common: "Blue Shark", scientific: "Prionace glauca", cat: "Sharks & Rays" },
+    { common: "Blue Sucker", scientific: "Cycleptus elongatus", cat: "Freshwater" },
+    { common: "Blue-spotted Stingray", scientific: "Neotrygon kuhlii", cat: "Sharks & Rays" },
+    { common: "Bluefish", scientific: "Pomatomus saltatrix", cat: "Saltwater Inshore" },
+    { common: "Bluegill", scientific: "Lepomis macrochirus", cat: "Freshwater" },
+    { common: "Bluehead Wrasse", scientific: "Thalassoma bifasciatum", cat: "Saltwater Inshore" },
+    { common: "Blueline Tilefish", scientific: "Caulolatilus microps", cat: "Saltwater Offshore" },
+    { common: "Bluntnose Minnow", scientific: "Pimephales notatus", cat: "Freshwater" },
+    { common: "Bocaccio", scientific: "Sebastes paucispinis", cat: "Saltwater Offshore" },
+    { common: "Boga", scientific: "Leporinus obtusidens", cat: "Freshwater" },
+    { common: "Bonefish", scientific: "Albula vulpes", cat: "Saltwater Inshore" },
+    { common: "Bonnethead", scientific: "Sphyrna tiburo", cat: "Sharks & Rays" },
+    { common: "Bonytail Chub", scientific: "Gila elegans", cat: "Freshwater" },
+    { common: "Boulder Darter", scientific: "Etheostoma wapiti", cat: "Freshwater" },
+    { common: "Bowfin", scientific: "Amia calva", cat: "Freshwater" },
+    { common: "Ray's Bream", scientific: "Brama brama", cat: "Saltwater Offshore" },
+    { common: "Brassy Trevally", scientific: "Caranx papuensis", cat: "Saltwater Inshore" },
+    { common: "Bridled Goby", scientific: "Coryphopterus glaucofraenum", cat: "Saltwater Inshore" },
+    { common: "Broadhead Catfish", scientific: "Clarias macrocephalus", cat: "Freshwater" },
+    { common: "Brook Trout", scientific: "Salvelinus fontinalis", cat: "Freshwater" },
+    { common: "Broomtail Grouper", scientific: "Mycteroperca xentrarcha", cat: "Saltwater Offshore" },
+    { common: "Brown Bullhead", scientific: "Ameiurus nebulosus", cat: "Freshwater" },
+    { common: "Brown Trout", scientific: "Salmo trutta", cat: "Freshwater" },
+    { common: "Bull Shark", scientific: "Carcharhinus leucas", cat: "Sharks & Rays" },
+    { common: "Bull Trout", scientific: "Salvelinus confluentus", cat: "Freshwater" },
+    { common: "Bullhead Minnow", scientific: "Pimephales vigilax", cat: "Freshwater" },
+    { common: "Bullseye Snakehead", scientific: "Channa marulius", cat: "Freshwater" },
+    { common: "Burbot", scientific: "Lota lota", cat: "Freshwater" },
+    { common: "Butterfish", scientific: "Peprilus triacanthus", cat: "Saltwater Inshore" },
+    { common: "Cabezon", scientific: "Scorpaenichthys marmoratus", cat: "Saltwater Inshore" },
+    { common: "Calico Bass", scientific: "Paralabrax clathratus", cat: "Saltwater Inshore" },
+    { common: "California Corbina", scientific: "Menticirrhus undulatus", cat: "Saltwater Inshore" },
+    { common: "California Halibut", scientific: "Paralichthys californicus", cat: "Saltwater Inshore" },
+    { common: "California Sheephead", scientific: "Semicossyphus pulcher", cat: "Saltwater Inshore" },
+    { common: "California Yellowtail", scientific: "Seriola dorsalis", cat: "Saltwater Offshore" },
+    { common: "Canary Rockfish", scientific: "Sebastes pinniger", cat: "Saltwater Offshore" },
+    { common: "Cape Redfish", scientific: "Sebastes capensis", cat: "Saltwater Offshore" },
+    { common: "Cardinalfish", scientific: "Apogon imberbis", cat: "Saltwater Inshore" },
+    { common: "Caribbean Reef Shark", scientific: "Carcharhinus perezi", cat: "Sharks & Rays" },
+    { common: "Cero Mackerel", scientific: "Scomberomorus regalis", cat: "Saltwater Inshore" },
+    { common: "Chain Pickerel", scientific: "Esox niger", cat: "Freshwater" },
+    { common: "Channel Catfish", scientific: "Ictalurus punctatus", cat: "Freshwater" },
+    { common: "Chinook Salmon", scientific: "Oncorhynchus tshawytscha", cat: "Freshwater" },
+    { common: "Chum Salmon", scientific: "Oncorhynchus keta", cat: "Freshwater" },
+    { common: "Clearnose Skate", scientific: "Raja eglanteria", cat: "Sharks & Rays" },
+    { common: "Clown Featherback", scientific: "Chitala ornata", cat: "Freshwater" },
+    { common: "Cobia", scientific: "Rachycentron canadum", cat: "Saltwater Offshore" },
+    { common: "Coho Salmon", scientific: "Oncorhynchus kisutch", cat: "Freshwater" },
+    { common: "Common Carp", scientific: "Cyprinus carpio", cat: "Freshwater" },
+    { common: "Common Snook", scientific: "Centropomus undecimalis", cat: "Saltwater Inshore" },
+    { common: "Common Thresher Shark", scientific: "Alopias vulpinus", cat: "Sharks & Rays" },
+    { common: "Congo Tigerfish", scientific: "Hydrocynus goliath", cat: "Freshwater" },
+    { common: "Copper Redhorse", scientific: "Moxostoma hubbsi", cat: "Freshwater" },
+    { common: "Copper Rockfish", scientific: "Sebastes caurinus", cat: "Saltwater Offshore" },
+    { common: "Coral Trout", scientific: "Plectropomus leopardus", cat: "Saltwater Offshore" },
+    { common: "Cownose Ray", scientific: "Rhinoptera bonasus", cat: "Sharks & Rays" },
+    { common: "Creek Chub", scientific: "Semotilus atromaculatus", cat: "Freshwater" },
+    { common: "Crested Bullhead Shark", scientific: "Heterodontus galeatus", cat: "Sharks & Rays" },
+    { common: "Cubera Snapper", scientific: "Lutjanus cyanopterus", cat: "Saltwater Offshore" },
+    { common: "Cusk", scientific: "Brosme brosme", cat: "Saltwater Offshore" },
+    { common: "Cutthroat Trout", scientific: "Oncorhynchus clarkii", cat: "Freshwater" },
+    { common: "Dollar Sunfish", scientific: "Lepomis marginatus", cat: "Freshwater" },
+    { common: "Dolly Varden", scientific: "Salvelinus malma", cat: "Freshwater" },
+    { common: "Doctorfish Tang", scientific: "Acanthurus chirurgus", cat: "Saltwater Inshore" },
+    { common: "Dogtooth Tuna", scientific: "Gymnosarda unicolor", cat: "Saltwater Offshore" },
+    { common: "Dusky Shark", scientific: "Carcharhinus obscurus", cat: "Sharks & Rays" },
+    { common: "Dusky Grouper", scientific: "Epinephelus marginatus", cat: "Saltwater Offshore" },
+    { common: "East Pacific Bonito", scientific: "Sarda chiliensis", cat: "Saltwater Offshore" },
+    { common: "Electric Eel", scientific: "Electrophorus electricus", cat: "Freshwater" },
+    { common: "Electric Ray", scientific: "Torpedo torpedo", cat: "Sharks & Rays" },
+    { common: "Emperor Red Snapper", scientific: "Lutjanus sebae", cat: "Saltwater Offshore" },
+    { common: "European Sea Bass", scientific: "Dicentrarchus labrax", cat: "Saltwater Inshore" },
+    { common: "European Eel", scientific: "Anguilla anguilla", cat: "Freshwater" },
+    { common: "European Perch", scientific: "Perca fluviatilis", cat: "Freshwater" },
+    { common: "Fallfish", scientific: "Semotilus corporalis", cat: "Freshwater" },
+    { common: "Fan-tail Darter", scientific: "Etheostoma flabellare", cat: "Freshwater" },
+    { common: "Featherfin Squeaker", scientific: "Synodontis eupterus", cat: "Freshwater" },
+    { common: "Flathead Catfish", scientific: "Pylodictis olivaris", cat: "Freshwater" },
+    { common: "Stonecat", scientific: "Noturus flavus", cat: "Freshwater" },
+    { common: "Flier", scientific: "Centrarchus macropterus", cat: "Freshwater" },
+    { common: "Florida Gar", scientific: "Lepisosteus platyrhincus", cat: "Freshwater" },
+    { common: "Florida Pompano", scientific: "Trachinotus carolinus", cat: "Saltwater Inshore" },
+    { common: "Freshwater Drum", scientific: "Aplodinotus grunniens", cat: "Freshwater" },
+    { common: "Frigate Tuna", scientific: "Auxis thazard", cat: "Saltwater Offshore" },
+    { common: "Gag Grouper", scientific: "Mycteroperca microlepis", cat: "Saltwater Offshore" },
+    { common: "Galapagos Shark", scientific: "Carcharhinus galapagensis", cat: "Sharks & Rays" },
+    { common: "Giant Barbel", scientific: "Catlocarpio siamensis", cat: "Freshwater" },
+    { common: "Giant Mudskipper", scientific: "Periophthalmodon schlosseri", cat: "Freshwater" },
+    { common: "Giant Kokopu", scientific: "Galaxias argenteus", cat: "Freshwater" },
+    { common: "Giant Trevally", scientific: "Caranx ignobilis", cat: "Saltwater Offshore" },
+    { common: "Gila Trout", scientific: "Oncorhynchus gilae", cat: "Freshwater" },
+    { common: "Gizzard Shad", scientific: "Dorosoma cepedianum", cat: "Freshwater" },
+    { common: "Glass Catfish", scientific: "Kryptopterus vitreolus", cat: "Freshwater" },
+    { common: "Goblin Shark", scientific: "Mitsukurina owstoni", cat: "Sharks & Rays" },
+    { common: "Golden Dorado", scientific: "Salminus brasiliensis", cat: "Freshwater" },
+    { common: "Golden Redhorse", scientific: "Moxostoma erythrurum", cat: "Freshwater" },
+    { common: "Golden Shiner", scientific: "Notemigonus crysoleucas", cat: "Freshwater" },
+    { common: "Golden Tench", scientific: "Tinca tinca", cat: "Freshwater" },
+    { common: "Golden Tilefish", scientific: "Lopholatilus chamaeleonticeps", cat: "Saltwater Offshore" },
+    { common: "Golden Trout", scientific: "Oncorhynchus aguabonita", cat: "Freshwater" },
+    { common: "Goldeye", scientific: "Hiodon alosoides", cat: "Freshwater" },
+    { common: "Giant Gourami", scientific: "Osphronemus goramy", cat: "Freshwater" },
+    { common: "Grass Carp", scientific: "Ctenopharyngodon idella", cat: "Freshwater" },
+    { common: "Gray Triggerfish", scientific: "Balistes capriscus", cat: "Saltwater Offshore" },
+    { common: "Great Barracuda", scientific: "Sphyraena barracuda", cat: "Saltwater Inshore" },
+    { common: "Great Hammerhead", scientific: "Sphyrna mokarran", cat: "Sharks & Rays" },
+    { common: "Great White Shark", scientific: "Carcharodon carcharias", cat: "Sharks & Rays" },
+    { common: "Greater Amberjack", scientific: "Seriola dumerili", cat: "Saltwater Offshore" },
+    { common: "Green Sunfish", scientific: "Lepomis cyanellus", cat: "Freshwater" },
+    { common: "Green Terror Cichlid", scientific: "Andinoacara rivulatus", cat: "Freshwater" },
+    { common: "Greenland Shark", scientific: "Somniosus microcephalus", cat: "Sharks & Rays" },
+    { common: "Guachouche Catfish", scientific: "Pimelodus maculatus", cat: "Freshwater" },
+    { common: "Gulf Flounder", scientific: "Paralichthys albigutta", cat: "Saltwater Inshore" },
+    { common: "Gulf Kingfish", scientific: "Menticirrhus littoralis", cat: "Saltwater Inshore" },
+    { common: "Haddock", scientific: "Melanogrammus aeglefinus", cat: "Saltwater Offshore" },
+    { common: "Hagfish", scientific: "Myxine glutinosa", cat: "Saltwater Offshore" },
+    { common: "Hardhead Catfish", scientific: "Ariopsis felis", cat: "Saltwater Inshore" },
+    { common: "Highfin Carpsucker", scientific: "Carpiodes velifer", cat: "Freshwater" },
+    { common: "Hogfish", scientific: "Lachnolaimus maximus", cat: "Saltwater Offshore" },
+    { common: "Horn Shark", scientific: "Heterodontus francisci", cat: "Sharks & Rays" },
+    { common: "Horse-eye Jack", scientific: "Caranx latus", cat: "Saltwater Inshore" },
+    { common: "Huchen", scientific: "Hucho hucho", cat: "Freshwater" },
+    { common: "Hybrid Striped Bass", scientific: "Morone chrysops x saxatilis", cat: "Freshwater" },
+    { common: "Inconnu", scientific: "Stenodus leucichthys", cat: "Freshwater" },
+    { common: "Indo-Pacific Sailfish", scientific: "Istiophorus platypterus", cat: "Saltwater Offshore" },
+    { common: "Jack Dempsey Cichlid", scientific: "Rocio octofasciata", cat: "Freshwater" },
+    { common: "Jack Crevalle", scientific: "Caranx hippos", cat: "Saltwater Inshore" },
+    { common: "Japanese Amberjack", scientific: "Seriola quinqueradiata", cat: "Saltwater Offshore" },
+    { common: "Japanese Sea Bass", scientific: "Lateolabrax japonicus", cat: "Saltwater Inshore" },
+    { common: "John Dory", scientific: "Zeus faber", cat: "Saltwater Offshore" },
+    { common: "Kahawai", scientific: "Arripis trutta", cat: "Saltwater Inshore" },
+    { common: "Kelp Bass", scientific: "Paralabrax clathratus", cat: "Saltwater Inshore" },
+    { common: "Kelp Greenling", scientific: "Hexagrammos decagrammus", cat: "Saltwater Inshore" },
+    { common: "King Mackerel", scientific: "Scomberomorus cavalla", cat: "Saltwater Offshore" },
+    { common: "King Threadfin", scientific: "Polydactylus macrochir", cat: "Saltwater Inshore" },
+    { common: "Kokanee Salmon", scientific: "Oncorhynchus nerka", cat: "Freshwater" },
+    { common: "Ladyfish", scientific: "Elops saurus", cat: "Saltwater Inshore" },
+    { common: "Lake Sturgeon", scientific: "Acipenser fulvescens", cat: "Freshwater" },
+    { common: "Lake Trout", scientific: "Salvelinus namaycush", cat: "Freshwater" },
+    { common: "Lake Whitefish", scientific: "Coregonus clupeaformis", cat: "Freshwater" },
+    { common: "Lane Snapper", scientific: "Lutjanus synagris", cat: "Saltwater Inshore" },
     { common: "Largemouth Bass", scientific: "Micropterus salmoides", cat: "Freshwater" },
+    { common: "Largescale Sucker", scientific: "Catostomus macrocheilus", cat: "Freshwater" },
+    { common: "Leatherjacket", scientific: "Oligoplites saurus", cat: "Saltwater Inshore" },
+    { common: "Lemon Shark", scientific: "Negaprion brevirostris", cat: "Sharks & Rays" },
+    { common: "Leopard Bush Fish", scientific: "Ctenopoma acutirostre", cat: "Freshwater" },
+    { common: "Leopard Shark", scientific: "Triakis semifasciata", cat: "Sharks & Rays" },
+    { common: "Lesser Amberjack", scientific: "Seriola fasciata", cat: "Saltwater Offshore" },
+    { common: "Common Sole", scientific: "Solea solea", cat: "Saltwater Inshore" },
+    { common: "Lingcod", scientific: "Ophiodon elongatus", cat: "Saltwater Inshore" },
+    { common: "Little Tunny", scientific: "Euthynnus alletteratus", cat: "Saltwater Offshore" },
+    { common: "Longear Sunfish", scientific: "Lepomis megalotis", cat: "Freshwater" },
+    { common: "Longbill Spearfish", scientific: "Tetrapturus pfuegeri", cat: "Saltwater Offshore" },
+    { common: "Longfinned Bullhead", scientific: "Ameiurus platycephalus", cat: "Freshwater" },
+    { common: "Longnose Gar", scientific: "Lepisosteus osseus", cat: "Freshwater" },
+    { common: "Longnose Sucker", scientific: "Catostomus catostomus", cat: "Freshwater" },
+    { common: "Lookdown", scientific: "Selene vomer", cat: "Saltwater Inshore" },
+    { common: "Lumpfish", scientific: "Cyclopterus lumpus", cat: "Saltwater Offshore" },
+    { common: "Mahi-mahi", scientific: "Coryphaena hippurus", cat: "Saltwater Offshore" },
+    { common: "Mangrove Red Snapper", scientific: "Lutjanus argentimaculatus", cat: "Saltwater Inshore" },
+    { common: "Mangrove Snapper", scientific: "Lutjanus griseus", cat: "Saltwater Inshore" },
+    { common: "Manta Ray", scientific: "Mobula birostris", cat: "Sharks & Rays" },
+    { common: "Mayan Cichlid", scientific: "Mayaheros urophthalmus", cat: "Freshwater" },
+    { common: "Mediterranean Spearfish", scientific: "Tetrapturus belone", cat: "Saltwater Offshore" },
+    { common: "Milkfish", scientific: "Chanos chanos", cat: "Saltwater Inshore" },
+    { common: "Mirror Carp", scientific: "Cyprinus carpio", cat: "Freshwater" },
+    { common: "Monkfish", scientific: "Lophius americanus", cat: "Saltwater Offshore" },
+    { common: "Mooneye", scientific: "Hiodon tergisus", cat: "Freshwater" },
+    { common: "Moonfish", scientific: "Selene setapinnis", cat: "Saltwater Inshore" },
+    { common: "Green Moray Eel", scientific: "Gymnothorax funebris", cat: "Saltwater Inshore" },
+    { common: "Mud Carp", scientific: "Cirrhinus molitorella", cat: "Freshwater" },
+    { common: "Mud Minnow", scientific: "Umbra limi", cat: "Freshwater" },
+    { common: "Mudskipper", scientific: "Periophthalmus gracilis", cat: "Freshwater" },
+    { common: "Striped Mullet", scientific: "Mugil cephalus", cat: "Saltwater Inshore" },
+    { common: "Muskellunge", scientific: "Esox masquinongy", cat: "Freshwater" },
+    { common: "Mutton Snapper", scientific: "Lutjanus analis", cat: "Saltwater Inshore" },
+    { common: "Northern Hog Sucker", scientific: "Hypentelium nigricans", cat: "Freshwater" },
+    { common: "Northern Pike", scientific: "Esox lucius", cat: "Freshwater" },
+    { common: "Northern Pikeminnow", scientific: "Ptychocheilus oregonensis", cat: "Freshwater" },
+    { common: "Northern Red Snapper", scientific: "Lutjanus campechanus", cat: "Saltwater Offshore" },
+    { common: "Northern Snakehead", scientific: "Channa argus", cat: "Freshwater" },
+    { common: "Northern Stargazer", scientific: "Astroscopus guttatus", cat: "Saltwater Inshore" },
+    { common: "Nurse Shark", scientific: "Ginglymostoma cirratum", cat: "Sharks & Rays" },
+    { common: "Ocean Pout", scientific: "Zoarces americanus", cat: "Saltwater Offshore" },
+    { common: "Ocean Sunfish", scientific: "Mola mola", cat: "Saltwater Offshore" },
+    { common: "Oceanic Whitetip Shark", scientific: "Carcharhinus longimanus", cat: "Sharks & Rays" },
+    { common: "Oilfish", scientific: "Ruvettus pretiosus", cat: "Saltwater Offshore" },
+    { common: "Opaleye", scientific: "Girella nigricans", cat: "Saltwater Inshore" },
+    { common: "Oscar", scientific: "Astronotus ocellatus", cat: "Freshwater" },
+    { common: "Pacific Barracuda", scientific: "Sphyraena argentea", cat: "Saltwater Inshore" },
+    { common: "Pacific Bonito", scientific: "Sarda lineolata", cat: "Saltwater Offshore" },
+    { common: "Pacific Cod", scientific: "Gadus macrocephalus", cat: "Saltwater Offshore" },
+    { common: "Pacific Halibut", scientific: "Hippoglossus stenolepis", cat: "Saltwater Offshore" },
+    { common: "Paddletail Snapper", scientific: "Lutjanus gibbus", cat: "Saltwater Offshore" },
+    { common: "Paddlefish", scientific: "Polyodon spathula", cat: "Freshwater" },
+    { common: "Palometa", scientific: "Trachinotus goodei", cat: "Saltwater Inshore" },
+    { common: "Rainbow Parrotfish", scientific: "Sparisoma viride", cat: "Saltwater Inshore" },
+    { common: "Peacock Bass", scientific: "Cichla ocellaris", cat: "Freshwater" },
+    { common: "Pelican Eel", scientific: "Eurypharynx pelecanoides", cat: "Saltwater Offshore" },
+    { common: "Permit", scientific: "Trachinotus falcatus", cat: "Saltwater Inshore" },
+    { common: "Petrale Sole", scientific: "Eopsetta jordani", cat: "Saltwater Inshore" },
+    { common: "Pigfish", scientific: "Orthopristis chrysoptera", cat: "Saltwater Inshore" },
+    { common: "Zander", scientific: "Sander lucioperca", cat: "Freshwater" },
+    { common: "Pinfish", scientific: "Lagodon rhomboides", cat: "Saltwater Inshore" },
+    { common: "Pink Salmon", scientific: "Oncorhynchus gorbuscha", cat: "Freshwater" },
+    { common: "Red-Bellied Piranha", scientific: "Pygocentrus nattereri", cat: "Freshwater" },
+    { common: "Pluma Porgy", scientific: "Calamus pennatula", cat: "Saltwater Inshore" },
+    { common: "Pollock", scientific: "Pollachius pollachius", cat: "Saltwater Offshore" },
+    { common: "Pompano Dorado", scientific: "Coryphaena equiselis", cat: "Saltwater Offshore" },
+    { common: "Porcupinefish", scientific: "Diodon hystrix", cat: "Saltwater Inshore" },
+    { common: "Porbeagle", scientific: "Lamna nasus", cat: "Sharks & Rays" },
+    { common: "Powan", scientific: "Coregonus lavaretus", cat: "Freshwater" },
+    { common: "Pumpkinseed", scientific: "Lepomis gibbosus", cat: "Freshwater" },
+    { common: "Queen Snapper", scientific: "Etelis oculatus", cat: "Saltwater Offshore" },
+    { common: "Queen Triggerfish", scientific: "Balistes vetula", cat: "Saltwater Offshore" },
+    { common: "Quillback Carpsucker", scientific: "Carpiodes cyprinus", cat: "Freshwater" },
+    { common: "Quillback Rockfish", scientific: "Sebastes maliger", cat: "Saltwater Offshore" },
+    { common: "Rainbow Runner", scientific: "Elagatis bipinnulata", cat: "Saltwater Offshore" },
+    { common: "Rainbow Trout", scientific: "Oncorhynchus mykiss", cat: "Freshwater" },
+    { common: "Red Drum", scientific: "Sciaenops ocellatus", cat: "Saltwater Inshore" },
+    { common: "Red Grouper", scientific: "Epinephelus morio", cat: "Saltwater Offshore" },
+    { common: "Red Porgy", scientific: "Pagrus pagrus", cat: "Saltwater Offshore" },
+    { common: "Red Snapper", scientific: "Lutjanus campechanus", cat: "Saltwater Offshore" },
+    { common: "Red-tail Catfish", scientific: "Phractocephalus hemioliopterus", cat: "Freshwater" },
+    { common: "Redbreast Sunfish", scientific: "Lepomis auritus", cat: "Freshwater" },
+    { common: "Redear Sunfish", scientific: "Lepomis microlophus", cat: "Freshwater" },
+    { common: "Redeye Bass", scientific: "Micropterus coosae", cat: "Freshwater" },
+    { common: "Shorthead Redhorse", scientific: "Moxostoma macrolepidotum", cat: "Freshwater" },
+    { common: "Ribbonfish", scientific: "Trichiurus lepturus", cat: "Saltwater Offshore" },
+    { common: "River Carpsucker", scientific: "Carpiodes carpio", cat: "Freshwater" },
+    { common: "River Redhorse", scientific: "Moxostoma carinatum", cat: "Freshwater" },
+    { common: "Roach", scientific: "Rutilus rutilus", cat: "Freshwater" },
+    { common: "Rock Bass", scientific: "Ambloplites rupestris", cat: "Freshwater" },
+    { common: "Rock Sole", scientific: "Lepidopsetta bilineata", cat: "Saltwater Inshore" },
+    { common: "Roosterfish", scientific: "Nematistius pectoralis", cat: "Saltwater Inshore" },
+    { common: "Rudd", scientific: "Scardinius erythrophthalmus", cat: "Freshwater" },
+    { common: "Ruffe", scientific: "Gymnocephalus cernua", cat: "Freshwater" },
+    { common: "Sablefish", scientific: "Anoplopoma fimbria", cat: "Saltwater Offshore" },
+    { common: "Sailfish", scientific: "Istiophorus platypterus", cat: "Saltwater Offshore" },
+    { common: "Salmon Shark", scientific: "Lamna ditropis", cat: "Sharks & Rays" },
+    { common: "Sand Perch", scientific: "Diplectrum formosum", cat: "Saltwater Inshore" },
+    { common: "Sand Tiger Shark", scientific: "Carcharias taurus", cat: "Sharks & Rays" },
+    { common: "Sandbar Shark", scientific: "Carcharhinus plumbeus", cat: "Sharks & Rays" },
+    { common: "Sarcastic Fringehead", scientific: "Neoclinus blanchardi", cat: "Saltwater Inshore" },
+    { common: "Sauger", scientific: "Sander canadensis", cat: "Freshwater" },
+    { common: "Scalloped Hammerhead", scientific: "Sphyrna lewini", cat: "Sharks & Rays" },
+    { common: "Scamp Grouper", scientific: "Mycteroperca phenax", cat: "Saltwater Offshore" },
+    { common: "Schoolmaster Snapper", scientific: "Lutjanus apodus", cat: "Saltwater Inshore" },
+    { common: "Scup", scientific: "Stenotomus chrysops", cat: "Saltwater Inshore" },
+    { common: "Sea Lamprey", scientific: "Petromyzon marinus", cat: "Freshwater" },
+    { common: "Sea Raven", scientific: "Hemitripterus americanus", cat: "Saltwater Inshore" },
+    { common: "Sheepshead", scientific: "Archosargus probatocephalus", cat: "Saltwater Inshore" },
+    { common: "Sheepshead Porgy", scientific: "Calamus penna", cat: "Saltwater Inshore" },
+    { common: "Shoal Bass", scientific: "Micropterus cataractae", cat: "Freshwater" },
+    { common: "Shortbill Spearfish", scientific: "Tetrapturus angustirostris", cat: "Saltwater Offshore" },
+    { common: "Shortfin Mako Shark", scientific: "Isurus oxyrinchus", cat: "Sharks & Rays" },
+    { common: "Shortnose Gar", scientific: "Lepisosteus platostomus", cat: "Freshwater" },
+    { common: "Shortnose Sturgeon", scientific: "Acipenser brevirostrum", cat: "Freshwater" },
+    { common: "Shovelnose Sturgeon", scientific: "Scaphirhynchus platorynchus", cat: "Freshwater" },
+    { common: "Silky Shark", scientific: "Carcharhinus falciformis", cat: "Sharks & Rays" },
+    { common: "Silk Snapper", scientific: "Lutjanus vivanus", cat: "Saltwater Offshore" },
+    { common: "Silver Carp", scientific: "Hypophthalmichthys molitrix", cat: "Freshwater" },
+    { common: "Silver Hake", scientific: "Merluccius bilinearis", cat: "Saltwater Offshore" },
+    { common: "Silver Perch", scientific: "Bairdiella chrysoura", cat: "Saltwater Inshore" },
+    { common: "Common Skate", scientific: "Dipturus batis", cat: "Sharks & Rays" },
+    { common: "Skipjack Tuna", scientific: "Katsuwonus pelamis", cat: "Saltwater Offshore" },
+    { common: "Smallmouth Bass", scientific: "Micropterus dolomieu", cat: "Freshwater" },
+    { common: "Smallmouth Buffalo", scientific: "Ictiobus bubalus", cat: "Freshwater" },
+    { common: "Smalltooth Sawfish", scientific: "Pristis pectinata", cat: "Sharks & Rays" },
+    { common: "Smooth Dogfish", scientific: "Mustelus canis", cat: "Sharks & Rays" },
+    { common: "Smooth Hammerhead", scientific: "Sphyrna zygaena", cat: "Sharks & Rays" },
+    { common: "Snowy Grouper", scientific: "Hyporthodus niveatus", cat: "Saltwater Offshore" },
+    { common: "Sockeye Salmon", scientific: "Oncorhynchus nerka", cat: "Freshwater" },
+    { common: "Southern Flounder", scientific: "Paralichthys lethostigma", cat: "Saltwater Inshore" },
+    { common: "Southern Stingray", scientific: "Hypanus americanus", cat: "Sharks & Rays" },
+    { common: "Spanish Mackerel", scientific: "Scomberomorus maculatus", cat: "Saltwater Inshore" },
+    { common: "Speckled Hind", scientific: "Epinephelus drummondhayi", cat: "Saltwater Offshore" },
+    { common: "Speckled Peacock Bass", scientific: "Cichla temensis", cat: "Freshwater" },
+    { common: "Spinner Shark", scientific: "Carcharhinus brevipinna", cat: "Sharks & Rays" },
+    { common: "Spiny Dogfish", scientific: "Squalus acanthias", cat: "Sharks & Rays" },
+    { common: "Splake", scientific: "Salvelinus fontinalis x Salvelinus namaycush", cat: "Freshwater" },
+    { common: "Spot", scientific: "Leiostomus xanthurus", cat: "Saltwater Inshore" },
+    { common: "Spotfin Croaker", scientific: "Roncador stearnsii", cat: "Saltwater Inshore" },
+    { common: "Spotted Bass", scientific: "Micropterus henshalli", cat: "Freshwater" },
+    { common: "Spotted Gar", scientific: "Lepisosteus oculatus", cat: "Freshwater" },
+    { common: "Spotted Sand Bass", scientific: "Micropterus maculatofasciatus", cat: "Saltwater Inshore" },
+    { common: "Spotted Seatrout", scientific: "Cynoscion nebulosus", cat: "Saltwater Inshore" },
+    { common: "Spotted Eagle Ray", scientific: "Aetobatus narinari", cat: "Sharks & Rays" },
+    { common: "Starry Flounder", scientific: "Platichthys stellatus", cat: "Saltwater Inshore" },
+    { common: "Steelhead", scientific: "Oncorhynchus mykiss", cat: "Freshwater" },
+    { common: "Stonefish", scientific: "Synanceia verrucosa", cat: "Saltwater Inshore" },
+    { common: "Striped Bass", scientific: "Morone saxatilis", cat: "Freshwater" },
+    { common: "Striped Marlin", scientific: "Kajikia audax", cat: "Saltwater Offshore" },
+    { common: "Redtail Surfperch", scientific: "Amphistichus rhodoterus", cat: "Saltwater Inshore" },
+    { common: "Summer Flounder", scientific: "Paralichthys dentatus", cat: "Saltwater Inshore" },
+    { common: "Suwannee Bass", scientific: "Micropterus notius", cat: "Freshwater" },
+    { common: "Swamp Eel", scientific: "Monopterus albus", cat: "Freshwater" },
+    { common: "Swordfish", scientific: "Xiphias gladius", cat: "Saltwater Offshore" },
+    { common: "Tarpon", scientific: "Megalops atlanticus", cat: "Saltwater Inshore" },
+    { common: "Tautog", scientific: "Tautoga onitis", cat: "Saltwater Inshore" },
+    { common: "Tench", scientific: "Tinca tinca", cat: "Freshwater" },
+    { common: "Thorny Skate", scientific: "Amblyraja radiata", cat: "Sharks & Rays" },
+    { common: "Threadfin Shad", scientific: "Dorosoma petenense", cat: "Freshwater" },
+    { common: "Tiger Muskellunge", scientific: "Esox masquinongy x lucius", cat: "Freshwater" },
+    { common: "Tiger Shark", scientific: "Galeocerdo cuvier", cat: "Sharks & Rays" },
+    { common: "Tiger Trout", scientific: "Salmo trutta x Salvelinus fontinalis", cat: "Freshwater" },
+    { common: "Tomcod", scientific: "Microgadus tomcod", cat: "Saltwater Inshore" },
+    { common: "Tripletail", scientific: "Lobotes surinamensis", cat: "Saltwater Inshore" },
+    { common: "Utah Chub", scientific: "Gila atraria", cat: "Freshwater" },
+    { common: "Vermilion Rockfish", scientific: "Sebastes miniatus", cat: "Saltwater Offshore" },
+    { common: "Vermilion Snapper", scientific: "Rhomboplites aurorubens", cat: "Saltwater Offshore" },
+    { common: "Wahoo", scientific: "Acanthocybium solandri", cat: "Saltwater Offshore" },
+    { common: "Walleye", scientific: "Sander vitreus", cat: "Freshwater" },
+    { common: "Warmouth", scientific: "Lepomis gulosus", cat: "Freshwater" },
+    { common: "Warsaw Grouper", scientific: "Hyporthodus nigritus", cat: "Saltwater Offshore" },
+    { common: "Weakfish", scientific: "Cynoscion regalis", cat: "Saltwater Inshore" },
+    { common: "White Bass", scientific: "Morone chrysops", cat: "Freshwater" },
+    { common: "White Catfish", scientific: "Ameiurus catus", cat: "Freshwater" },
+    { common: "White Crappie", scientific: "Pomoxis annularis", cat: "Freshwater" },
+    { common: "White Marlin", scientific: "Kajikia albida", cat: "Saltwater Offshore" },
+    { common: "White Perch", scientific: "Morone americana", cat: "Freshwater" },
+    { common: "White Seabass", scientific: "Atractoscion nobilis", cat: "Saltwater Inshore" },
+    { common: "White Sturgeon", scientific: "Acipenser transmontanus", cat: "Freshwater" },
+    { common: "White Sucker", scientific: "Catostomus commersonii", cat: "Freshwater" },
+    { common: "Winter Flounder", scientific: "Pseudopleuronectes americanus", cat: "Saltwater Inshore" },
+    { common: "Yellow Bass", scientific: "Morone mississippiensis", cat: "Freshwater" },
+    { common: "Yellow Bullhead", scientific: "Ameiurus natalis", cat: "Freshwater" },
+    { common: "Yellow Perch", scientific: "Perca flavescens", cat: "Freshwater" },
+    { common: "Yelloweye Rockfish", scientific: "Sebastes ruberrimus", cat: "Saltwater Offshore" },
+    { common: "Yellowfin Cutthroat Trout", scientific: "Oncorhynchus clarkii macdonaldi", cat: "Freshwater" },
+    { common: "Yellowfin Croaker", scientific: "Umbrina roncador", cat: "Saltwater Inshore" },
+    { common: "Yellowfin Tuna", scientific: "Thunnus albacares", cat: "Saltwater Offshore" },
+    { common: "Yellowtail Rockfish", scientific: "Sebastes flavidus", cat: "Saltwater Offshore" },
+    { common: "Yellowtail Snapper", scientific: "Ocyurus chrysurus", cat: "Saltwater Inshore" },
+    { common: "Trumpetfish", scientific: "Aulostomus maculatus", cat: "Saltwater Inshore" },
+    { common: "Banded Butterflyfish", scientific: "Chaetodon striatus", cat: "Saltwater Inshore" },
+    { common: "Banded Guitarfish", scientific: "Zapteryx exasperata", cat: "Sharks & Rays" },
+    { common: "Barnacle Bill Anchovy", scientific: "Anchoa hepsetus", cat: "Saltwater Inshore" },
+    { common: "Bay Anchovy", scientific: "Anchoa mitchilli", cat: "Saltwater Inshore" },
+    { common: "Bearded Brotula", scientific: "Brotula barbata", cat: "Saltwater Offshore" },
+    { common: "Belted Sandfish", scientific: "Serranus subligarius", cat: "Saltwater Inshore" },
+    { common: "Black Bar Soldierfish", scientific: "Myripristis jacobus", cat: "Saltwater Inshore" },
+    { common: "Black Dory", scientific: "Allocyttus niger", cat: "Saltwater Offshore" },
+    { common: "Black Margate", scientific: "Anisotremus surinamensis", cat: "Saltwater Inshore" },
+    { common: "Black-bellied Rosefish", scientific: "Helicolenus dactylopterus", cat: "Saltwater Offshore" },
+    { common: "Blackedge Cichlid", scientific: "Tilapia mariae", cat: "Freshwater" },
+    { common: "Blackfin Hake", scientific: "Physiculus fulvus", cat: "Saltwater Offshore" },
+    { common: "Blackline Darter", scientific: "Percina maculata", cat: "Freshwater" },
+    { common: "Blacktail Snapper", scientific: "Lutjanus fulvus", cat: "Saltwater Inshore" },
+    { common: "Blue Angelfish", scientific: "Pomacanthus bermudensis", cat: "Saltwater Inshore" },
+    { common: "Blue Tang", scientific: "Acanthurus coeruleus", cat: "Saltwater Inshore" },
+    { common: "Blue-spotted Coris", scientific: "Coris gaimard", cat: "Saltwater Inshore" },
+    { common: "Bluntnose Stingray", scientific: "Hypanus say", cat: "Sharks & Rays" },
+    { common: "Bonehead Sculpin", scientific: "Artedius harringtoni", cat: "Saltwater Inshore" },
+    { common: "Bonnylip Barb", scientific: "Osteochilus vittatus", cat: "Freshwater" },
+    { common: "Bourbon Arowana", scientific: "Scleropages formosus", cat: "Freshwater" },
+    { common: "Brass Flathead", scientific: "Platycephalus fuscus", cat: "Saltwater Inshore" },
+    { common: "Bridled Burrfish", scientific: "Chilomycterus antennatus", cat: "Saltwater Inshore" },
+    { common: "Broadbanded Moray", scientific: "Channomuraena vittata", cat: "Saltwater Inshore" },
+    { common: "Brown Hoplo", scientific: "Hoplosternum littorale", cat: "Freshwater" },
+    { common: "Port Jackson Shark", scientific: "Heterodontus portusjacksoni", cat: "Sharks & Rays" },
+    { common: "California Lizardfish", scientific: "Synodus lucioceps", cat: "Saltwater Inshore" },
+    { common: "California Scorpionfish", scientific: "Scorpaena guttata", cat: "Saltwater Inshore" },
+    { common: "Calico Lizardfish", scientific: "Synodus foetens", cat: "Saltwater Inshore" },
+    { common: "Candiru", scientific: "Vandellia cirrhosa", cat: "Freshwater" },
+    { common: "Chain Moray", scientific: "Echidna catenata", cat: "Saltwater Inshore" },
+    { common: "Checkered Puffer", scientific: "Sphoeroides testudineus", cat: "Saltwater Inshore" },
+    { common: "Chinamanfish", scientific: "Symphorus nematophorus", cat: "Saltwater Offshore" },
+    { common: "Clown Triggerfish", scientific: "Balistoides conspicillum", cat: "Saltwater Offshore" },
+    { common: "Congo Tetra", scientific: "Phenacogrammus interruptus", cat: "Freshwater" },
+    { common: "Creek Chubsucker", scientific: "Erimyzon oblongus", cat: "Freshwater" },
+    { common: "Crested Oarfish", scientific: "Lophotus lacepede", cat: "Saltwater Offshore" },
+    { common: "Cuban Gar", scientific: "Atractosteus tristoechus", cat: "Freshwater" },
+    { common: "Deepwater Redfish", scientific: "Sebastes mentella", cat: "Saltwater Offshore" },
+    { common: "Diamond Sunfish", scientific: "Enneacanthus gloriosus", cat: "Freshwater" },
+    { common: "Disk Tetra", scientific: "Myleus rubripinnis", cat: "Freshwater" },
+    { common: "Small-spotted Catshark", scientific: "Scyliorhinus canicula", cat: "Sharks & Rays" },
+    { common: "Elvers", scientific: "Anguilla anguilla", cat: "Freshwater" },
+    { common: "Emperor Angelfish", scientific: "Pomacanthus imperator", cat: "Saltwater Inshore" },
+    { common: "Flame Angel", scientific: "Centropyge loriculus", cat: "Saltwater Inshore" },
+    { common: "Flying Gurnard", scientific: "Dactylopterus volitans", cat: "Saltwater Inshore" },
+    { common: "French Angelfish", scientific: "Pomacanthus paru", cat: "Saltwater Inshore" },
+    { common: "French Grunt", scientific: "Haemulon flavolineatum", cat: "Saltwater Inshore" },
+    { common: "Fringe-lip Flathead", scientific: "Cymbacephalus nematophthalmus", cat: "Saltwater Inshore" },
+    { common: "Garibaldi", scientific: "Hypsypops rubicundus", cat: "Saltwater Inshore" },
+    { common: "Glass Knife Fish", scientific: "Eigenmannia virescens", cat: "Freshwater" },
+    { common: "Globe Fish", scientific: "Diodon nicthemerus", cat: "Saltwater Inshore" },
+    { common: "Yellow Goatfish", scientific: "Mulloidichthys martinicus", cat: "Saltwater Inshore" },
+    { common: "Goldbreast Sunfish", scientific: "Lepomis auritus", cat: "Freshwater" },
+    { common: "Golden Trevally", scientific: "Gnathanodon speciosus", cat: "Saltwater Inshore" },
+    { common: "Golden Arowana", scientific: "Scleropages formosus", cat: "Freshwater" },
+    { common: "Green Chromis", scientific: "Chromis viridis", cat: "Saltwater Inshore" },
+    { common: "Green Jack", scientific: "Caranx caballus", cat: "Saltwater Inshore" },
+    { common: "Harlequin Bass", scientific: "Serranus tigrinus", cat: "Saltwater Inshore" },
+    { common: "High-hat", scientific: "Pareques acuminatus", cat: "Saltwater Inshore" },
+    { common: "Honeycomb Moray", scientific: "Muraena melanotis", cat: "Saltwater Inshore" },
+    { common: "Horned Lizardfish", scientific: "Synodus intermedium", cat: "Saltwater Inshore" },
+    { common: "Houndfish", scientific: "Tylosurus crocodilus", cat: "Saltwater Inshore" },
+    { common: "Humuhumunukunukuapua'a", scientific: "Rhinecanthus rectangulus", cat: "Saltwater Inshore" },
+    { common: "Illuminated Lanternfish", scientific: "Benthosema glaciale", cat: "Saltwater Offshore" },
+    { common: "Indigo Hamlet", scientific: "Hypoplectrus indigo", cat: "Saltwater Inshore" },
+    { common: "Jewelfish", scientific: "Hemichromis bimaculatus", cat: "Freshwater" },
+    { common: "Keyhole Cichlid", scientific: "Cleithracara maronii", cat: "Freshwater" },
+    { common: "Lancer Catfish", scientific: "Bagrus bajad", cat: "Freshwater" },
+    { common: "Longspined Squirrelfish", scientific: "Holocentrus rufus", cat: "Saltwater Inshore" },
+    { common: "Lyretail Grouper", scientific: "Variola louti", cat: "Saltwater Offshore" },
+    { common: "Mexican Lookdown", scientific: "Selene brevoortii", cat: "Saltwater Inshore" },
+    { common: "Neon Tetra", scientific: "Paracheirodon innesi", cat: "Freshwater" },
+    { common: "Northern Clingfish", scientific: "Gobiesox maeandricus", cat: "Saltwater Inshore" },
+    { common: "Hoodwinker Sunfish", scientific: "Mola tecta", cat: "Saltwater Offshore" },
+    { common: "Orbicular Batfish", scientific: "Platax orbicularis", cat: "Saltwater Inshore" },
+    { common: "Painted Frogfish", scientific: "Antennarius pictus", cat: "Saltwater Inshore" },
+    { common: "Paletail Sergeant Major", scientific: "Abudefduf saxatilis", cat: "Saltwater Inshore" },
+    { common: "Picasso Triggerfish", scientific: "Rhinecanthus aculeatus", cat: "Saltwater Inshore" },
+    { common: "Pipefish", scientific: "Syngnathus fuscus", cat: "Saltwater Inshore" },
+    { common: "Porkfish", scientific: "Anisotremus virginicus", cat: "Saltwater Inshore" },
+    { common: "Purple Queen Anthias", scientific: "Pseudanthias tuka", cat: "Saltwater Inshore" },
+    { common: "Red Lionfish", scientific: "Pterois volitans", cat: "Saltwater Inshore" },
+    { common: "Sargassum Fish", scientific: "Histrio histrio", cat: "Saltwater Offshore" },
+    { common: "Short-snout Seahorse", scientific: "Hippocampus hippocampus", cat: "Saltwater Inshore" },
+    { common: "Spotted Drum", scientific: "Equetus punctatus", cat: "Saltwater Inshore" },
+    { common: "Spotted Goatfish", scientific: "Pseudupeneus maculatus", cat: "Saltwater Inshore" },
+    { common: "Spotted Trunkfish", scientific: "Lactophrys bicaudalis", cat: "Saltwater Inshore" },
+    { common: "Squirrelfish", scientific: "Holocentrus adscensionis", cat: "Saltwater Inshore" },
+    { common: "Stoplight Parrotfish", scientific: "Sparisoma viride", cat: "Saltwater Inshore" },
+    { common: "Tarpon Toadfish", scientific: "Opsanus beta", cat: "Saltwater Inshore" },
+    { common: "Threadfin Butterflyfish", scientific: "Chaetodon auriga", cat: "Saltwater Inshore" },
+    { common: "Tomtate Grunt", scientific: "Haemulon aurolineatum", cat: "Saltwater Inshore" },
+    { common: "Yellow Longnose Butterflyfish", scientific: "Forcipiger flavissimus", cat: "Saltwater Inshore" },
+    { common: "Yellow Tang", scientific: "Zebrasoma flavescens", cat: "Saltwater Inshore" },
+
+    // --- NEWLY ADDED SPECIES ---
     { common: "Smallmouth Bass", scientific: "Micropterus dolomieu", cat: "Freshwater" },
     { common: "Spotted Bass", scientific: "Micropterus henshalli", cat: "Freshwater" },
     { common: "Striped Bass", scientific: "Morone saxatilis", cat: "Freshwater" },
     { common: "Hybrid Striped Bass", scientific: "Morone chrysops x saxatilis", cat: "Freshwater" },
     { common: "White Bass", scientific: "Morone chrysops", cat: "Freshwater" },
-    { common: "Peacock Bass", scientific: "Cichla ocellaris", cat: "Freshwater" },
-    { common: "Walleye", scientific: "Sander vitreus", cat: "Freshwater" },
     { common: "Sauger", scientific: "Sander canadensis", cat: "Freshwater" },
     { common: "Yellow Perch", scientific: "Perca flavescens", cat: "Freshwater" },
     { common: "Northern Pike", scientific: "Esox lucius", cat: "Freshwater" },
@@ -269,11 +784,8 @@ const BASE_SPECIES = [
     { common: "Barramundi", scientific: "Lates calcarifer", cat: "Freshwater" },
     { common: "Golden Dorado", scientific: "Salminus brasiliensis", cat: "Freshwater" },
     { common: "Arapaima", scientific: "Arapaima gigas", cat: "Freshwater" },
-
-    // SALTWATER INSHORE
     { common: "Red Drum", scientific: "Sciaenops ocellatus", cat: "Saltwater Inshore" },
     { common: "Spotted Seatrout", scientific: "Cynoscion nebulosus", cat: "Saltwater Inshore" },
-    { common: "Striped Bass", scientific: "Morone saxatilis", cat: "Saltwater Inshore" },
     { common: "Common Snook", scientific: "Centropomus undecimalis", cat: "Saltwater Inshore" },
     { common: "Tarpon", scientific: "Megalops atlanticus", cat: "Saltwater Inshore" },
     { common: "Bonefish", scientific: "Albula vulpes", cat: "Saltwater Inshore" },
@@ -307,8 +819,6 @@ const BASE_SPECIES = [
     { common: "Roosterfish", scientific: "Nematistius pectoralis", cat: "Saltwater Inshore" },
     { common: "Great Barracuda", scientific: "Sphyraena barracuda", cat: "Saltwater Inshore" },
     { common: "Tripletail", scientific: "Lobotes surinamensis", cat: "Saltwater Inshore" },
-
-    // SALTWATER OFFSHORE
     { common: "Mahi-mahi", scientific: "Coryphaena hippurus", cat: "Saltwater Offshore" },
     { common: "Yellowfin Tuna", scientific: "Thunnus albacares", cat: "Saltwater Offshore" },
     { common: "Atlantic Bluefin Tuna", scientific: "Thunnus thynnus", cat: "Saltwater Offshore" },
@@ -354,8 +864,6 @@ const BASE_SPECIES = [
     { common: "Yelloweye Rockfish", scientific: "Sebastes ruberrimus", cat: "Saltwater Offshore" },
     { common: "Black Rockfish", scientific: "Sebastes melanops", cat: "Saltwater Offshore" },
     { common: "Rainbow Runner", scientific: "Elagatis bipinnulata", cat: "Saltwater Offshore" },
-
-    // SHARKS & RAYS
     { common: "Shortfin Mako Shark", scientific: "Isurus oxyrinchus", cat: "Sharks & Rays" },
     { common: "Common Thresher Shark", scientific: "Alopias vulpinus", cat: "Sharks & Rays" },
     { common: "Blacktip Shark", scientific: "Carcharhinus limbatus", cat: "Sharks & Rays" },
@@ -369,13 +877,35 @@ const BASE_SPECIES = [
     { common: "Porbeagle", scientific: "Lamna nasus", cat: "Sharks & Rays" }
 ];
 
+// Remove duplicate items by common name + scientific name
+const SPECIES_MAP = new Map();
+BASE_SPECIES.forEach(item => {
+    const key = (item.common + "||" + item.scientific).toLowerCase();
+    if (!SPECIES_MAP.has(key)) {
+        SPECIES_MAP.set(key, item);
+    }
+});
+const UNIQUE_SPECIES = Array.from(SPECIES_MAP.values());
+
 let caughtMap = loadCaught();
 let currentFilter = "all";
 const imageCache = {};
 
 function loadCaught() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY_CAUGHT) || "{}"); } catch { return {}; }
+    try {
+        const raw = JSON.parse(localStorage.getItem(STORAGE_KEY_CAUGHT) || "{}");
+        const normalized = {};
+        for (const key in raw) {
+            if (typeof raw[key] === "boolean") {
+                if (raw[key]) normalized[key] = { caught: true };
+            } else if (typeof raw[key] === "object" && raw[key] !== null) {
+                normalized[key] = raw[key];
+            }
+        }
+        return normalized;
+    } catch { return {}; }
 }
+
 function saveCaught() {
     localStorage.setItem(STORAGE_KEY_CAUGHT, JSON.stringify(caughtMap));
 }
@@ -388,21 +918,19 @@ async function fetchWikiImage(scientificName, commonName) {
     const key = scientificName + "||" + commonName;
     if (imageCache[key]) return imageCache[key];
 
-    // Clean terms for searching Wikipedia
     const cleanCommon = commonName.replace(/\(.*?\)/g, '').trim();
     const cleanScientific = scientificName.replace(/x .*/g, '').trim();
 
     const searchQueries = [
-        cleanCommon,
         cleanScientific,
-        commonName,
-        scientificName
+        cleanCommon,
+        scientificName,
+        commonName
     ];
 
     for (const query of searchQueries) {
         if (!query) continue;
         try {
-            // Wikipedia Generator Search API resolves redirects and alias titles automatically
             const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages&pithumbsize=600&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrlimit=1&origin=*`;
             const res = await fetch(searchUrl);
             if (res.ok) {
@@ -418,7 +946,6 @@ async function fetchWikiImage(scientificName, commonName) {
         } catch (e) {}
     }
 
-    // Modern inline SVG placeholder if image unavailable (replaces the scuba diver stock photo)
     const fallbackSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="100%" height="100%" fill="%23061821"/><path d="M 180,200 C 230,130 370,130 420,200 C 370,270 230,270 180,200 Z M 420,200 L 470,150 L 450,200 L 470,250 Z M 350,185 A 10,10 0 1 0 350,186" fill="none" stroke="%231a4653" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
     imageCache[key] = fallbackSvg;
     return imageCache[key];
@@ -449,9 +976,9 @@ function getFilteredList() {
     const query = document.getElementById("search").value.trim().toLowerCase();
     const catVal = document.getElementById("categoryFilter").value;
 
-    return BASE_SPECIES.filter((item, idx) => {
+    return UNIQUE_SPECIES.filter((item, idx) => {
         const id = "g_fish_" + idx;
-        const isCaught = !!caughtMap[id];
+        const isCaught = !!caughtMap[id]?.caught;
 
         const matchesQuery = !query || 
             item.common.toLowerCase().includes(query) || 
@@ -479,9 +1006,10 @@ function render() {
     } else {
         empty.style.display = "none";
         grid.innerHTML = filtered.map(item => {
-            const originalIndex = BASE_SPECIES.indexOf(item);
+            const originalIndex = UNIQUE_SPECIES.indexOf(item);
             const id = "g_fish_" + originalIndex;
-            const caught = !!caughtMap[id];
+            const entry = caughtMap[id] || {};
+            const caught = !!entry.caught;
 
             return `
                 <article class="fish-card ${caught ? 'caught' : ''}">
@@ -501,6 +1029,18 @@ function render() {
                         </div>
                         ${caught ? '<div class="caught-label">CAUGHT</div>' : ''}
                     </div>
+                    ${caught ? `
+                        <div class="catch-details">
+                            <div class="catch-details-row">
+                                <input type="date" value="${escapeHTML(entry.date || '')}" placeholder="Date" onchange="updateCatchField('${id}', 'date', this.value)">
+                                <input type="text" value="${escapeHTML(entry.weight || '')}" placeholder="Weight (e.g. 5 lbs)" onchange="updateCatchField('${id}', 'weight', this.value)">
+                            </div>
+                            <div class="catch-details-row">
+                                <input type="text" value="${escapeHTML(entry.length || '')}" placeholder="Length (e.g. 22 in)" onchange="updateCatchField('${id}', 'length', this.value)">
+                                <input type="text" value="${escapeHTML(entry.location || '')}" placeholder="Location / Notes" onchange="updateCatchField('${id}', 'location', this.value)">
+                            </div>
+                        </div>
+                    ` : ''}
                 </article>
             `;
         }).join("");
@@ -508,18 +1048,37 @@ function render() {
         loadVisibleImages();
     }
 
-    const totalCaught = Object.keys(caughtMap).length;
-    const pct = BASE_SPECIES.length ? Math.round((totalCaught / BASE_SPECIES.length) * 100) : 0;
-    document.getElementById("progressText").textContent = `${totalCaught} / ${BASE_SPECIES.length} Logged`;
+    const totalCaught = Object.values(caughtMap).filter(x => x.caught).length;
+    const pct = UNIQUE_SPECIES.length ? Math.round((totalCaught / UNIQUE_SPECIES.length) * 100) : 0;
+    document.getElementById("progressText").textContent = `${totalCaught} / ${UNIQUE_SPECIES.length} Logged`;
     document.getElementById("progressFill").style.width = `${pct}%`;
-    document.getElementById("dbStatus").textContent = `${BASE_SPECIES.length} Total Species Active`;
+    document.getElementById("dbStatus").textContent = `${UNIQUE_SPECIES.length} Total Species Active`;
 }
 
 function toggleCaught(id, isChecked) {
-    if (isChecked) caughtMap[id] = true;
-    else delete caughtMap[id];
+    if (isChecked) {
+        if (!caughtMap[id]) {
+            caughtMap[id] = { 
+                caught: true, 
+                date: new Date().toISOString().split('T')[0], 
+                weight: '', 
+                length: '', 
+                location: '' 
+            };
+        } else {
+            caughtMap[id].caught = true;
+        }
+    } else {
+        delete caughtMap[id];
+    }
     saveCaught();
     render();
+}
+
+function updateCatchField(id, field, value) {
+    if (!caughtMap[id]) caughtMap[id] = { caught: true };
+    caughtMap[id][field] = value;
+    saveCaught();
 }
 
 function setFilter(filter) {
@@ -537,6 +1096,36 @@ function resetCaught() {
         saveCaught();
         render();
     }
+}
+
+function exportData() {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(caughtMap, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `angler_tracker_backup_${new Date().toISOString().split('T')[0]}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+}
+
+function importData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const imported = JSON.parse(e.target.result);
+            if (typeof imported === 'object' && imported !== null) {
+                caughtMap = imported;
+                saveCaught();
+                render();
+                alert("Catch log imported successfully!");
+            }
+        } catch (err) {
+            alert("Invalid JSON backup file.");
+        }
+    };
+    reader.readAsText(file);
 }
 
 document.getElementById("search").addEventListener("input", render);
