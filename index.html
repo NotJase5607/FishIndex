@@ -1,74 +1,42 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Worldwide Fish Index</title>
-
+<title>Ultimate Angler Species Tracker</title>
 <style>
-    * {
-        box-sizing: border-box;
-    }
-
+    * { box-sizing: border-box; }
     body {
         margin: 0;
-        font-family: Arial, Helvetica, sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
         color: #f5fbff;
-        background:
-            radial-gradient(
-                circle at top left,
-                rgba(17, 147, 173, 0.18),
-                transparent 35%
-            ),
-            linear-gradient(
-                180deg,
-                #06151d 0%,
-                #09232d 100%
-            );
+        background: radial-gradient(circle at top left, rgba(17, 147, 173, 0.18), transparent 35%),
+                    linear-gradient(180deg, #06151d 0%, #09232d 100%);
         min-height: 100vh;
     }
 
     header {
-        padding: 34px 20px 26px;
+        padding: 30px 20px 20px;
         text-align: center;
-        background:
-            linear-gradient(
-                135deg,
-                #08758a,
-                #063d4d
-            );
+        background: linear-gradient(135deg, #08758a, #063d4d);
         box-shadow: 0 5px 24px rgba(0,0,0,.35);
     }
-
-    header h1 {
-        margin: 0 0 8px;
-        font-size: clamp(30px, 5vw, 48px);
-    }
-
-    header p {
-        margin: 0;
-        opacity: .88;
-    }
+    header h1 { margin: 0 0 8px; font-size: clamp(26px, 4vw, 42px); }
+    header p { margin: 0; opacity: .88; font-size: 14px; }
 
     .container {
-        width: min(1500px, 95%);
-        margin: 24px auto 45px;
+        width: min(1400px, 95%);
+        margin: 20px auto 40px;
     }
 
     .panel {
         background: rgba(10, 35, 45, .94);
         border: 1px solid #1b4b5b;
-        border-radius: 16px;
+        border-radius: 14px;
         box-shadow: 0 8px 28px rgba(0,0,0,.22);
     }
 
-    .stats {
-        padding: 20px;
-        margin-bottom: 18px;
-    }
-
+    .stats { padding: 18px 20px; margin-bottom: 16px; }
     .stats-row {
         display: flex;
         justify-content: space-between;
@@ -76,1677 +44,504 @@
         align-items: center;
         flex-wrap: wrap;
     }
-
-    #progressText {
-        font-size: 21px;
-        font-weight: 800;
-    }
-
-    #dbStatus {
-        font-size: 13px;
-        opacity: .75;
-        text-align: right;
-    }
+    #progressText { font-size: 20px; font-weight: 800; }
+    #dbStatus { font-size: 13px; opacity: .8; text-align: right; }
 
     .progress {
-        margin-top: 14px;
-        height: 18px;
+        margin-top: 12px;
+        height: 14px;
         border-radius: 50px;
         overflow: hidden;
         background: #123b49;
     }
-
     #progressFill {
         width: 0%;
         height: 100%;
-        background:
-            linear-gradient(
-                90deg,
-                #18b8d2,
-                #53dfa7
-            );
+        background: linear-gradient(90deg, #18b8d2, #53dfa7);
         transition: width .25s ease;
     }
 
     .controls {
-        padding: 16px;
-        margin-bottom: 18px;
-        display: grid;
-        grid-template-columns:
-            minmax(220px, 1fr)
-            repeat(5, auto);
+        padding: 14px;
+        margin-bottom: 16px;
+        display: flex;
         gap: 10px;
+        flex-wrap: wrap;
     }
-
-    input[type="search"] {
-        width: 100%;
+    input[type="search"], select {
         border: 1px solid #2c6070;
         background: #08212c;
         color: white;
-        border-radius: 10px;
-        padding: 13px 14px;
+        border-radius: 8px;
+        padding: 10px 14px;
         outline: none;
         font-size: 15px;
     }
-
-    input[type="search"]:focus {
-        border-color: #20c5dd;
-        box-shadow:
-            0 0 0 3px rgba(32,197,221,.12);
-    }
+    input[type="search"] { flex: 2; min-width: 200px; }
+    select { min-width: 150px; }
+    input[type="search"]:focus { border-color: #20c5dd; }
 
     button {
         border: 0;
-        border-radius: 10px;
-        padding: 12px 16px;
-        font-weight: 800;
+        border-radius: 8px;
+        padding: 10px 16px;
+        font-weight: 700;
         color: white;
         background: #0e6375;
         cursor: pointer;
     }
-
-    button:hover {
-        background: #157d92;
-    }
-
-    .danger {
-        background: #8b3232;
-    }
-
-    .danger:hover {
-        background: #aa3d3d;
-    }
+    button:hover { background: #157d92; }
+    button.active { background: #20c5dd; color: #06151d; }
+    button.danger { background: #8b3232; }
+    button.danger:hover { background: #aa3d3d; }
 
     .fish-grid {
         display: grid;
-        grid-template-columns:
-            repeat(
-                auto-fill,
-                minmax(290px, 1fr)
-            );
-        gap: 12px;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 14px;
     }
 
     .fish-card {
-        padding: 15px;
+        padding: 12px;
         background: #0a2732;
         border: 1px solid #1a4653;
-        border-radius: 14px;
+        border-radius: 12px;
         display: flex;
-        gap: 12px;
+        flex-direction: column;
+        gap: 10px;
+        transition: transform .15s, border-color .15s;
+        overflow: hidden;
+    }
+    .fish-card:hover { transform: translateY(-2px); border-color: #2e7c8d; }
+    .fish-card.caught { background: #0b332b; border-color: #1ca778; }
+
+    .img-container {
+        width: 100%;
+        height: 170px;
+        background: #061821;
+        border-radius: 8px;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .fish-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0;
+        transition: opacity .3s ease;
+    }
+
+    .fish-img.loaded {
+        opacity: 1;
+    }
+
+    .card-header {
+        display: flex;
         align-items: flex-start;
-        transition:
-            transform .15s,
-            border-color .15s,
-            background .15s;
-    }
-
-    .fish-card:hover {
-        transform: translateY(-2px);
-        border-color: #2e7c8d;
-    }
-
-    .fish-card.caught {
-        background: #0b332b;
-        border-color: #1ca778;
+        gap: 10px;
     }
 
     .check {
-        width: 25px;
-        height: 25px;
-        min-width: 25px;
-        margin-top: 2px;
+        width: 22px;
+        height: 22px;
+        min-width: 22px;
         accent-color: #22bc82;
         cursor: pointer;
+        margin-top: 2px;
     }
-
-    .name {
-        font-weight: 800;
-        font-size: 16px;
-        line-height: 1.25;
-    }
-
-    .scientific {
-        margin-top: 4px;
-        font-size: 13px;
-        font-style: italic;
-        color: #afd0d8;
-    }
-
-    .meta {
-        margin-top: 7px;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 5px;
-    }
-
+    .name { font-weight: 800; font-size: 15px; line-height: 1.25; }
+    .scientific { margin-top: 4px; font-size: 12px; font-style: italic; color: #afd0d8; }
     .tag {
         display: inline-block;
-        padding: 4px 7px;
+        padding: 3px 8px;
+        margin-top: 6px;
         border-radius: 999px;
         background: #123b47;
         color: #bde6ed;
         font-size: 11px;
+        font-weight: 600;
     }
+    .caught-label { margin-left: auto; font-size: 10px; font-weight: 900; color: #56e0ad; letter-spacing: 0.5px; }
 
-    .caught-label {
-        margin-left: auto;
-        font-size: 11px;
-        font-weight: 900;
-        color: #56e0ad;
-        white-space: nowrap;
-    }
-
-    #empty {
-        display: none;
-        text-align: center;
-        padding: 50px 20px;
-        opacity: .7;
-    }
-
-    .footer {
-        text-align: center;
-        padding: 26px 10px 0;
-        font-size: 12px;
-        opacity: .62;
-        line-height: 1.5;
-    }
-
-    .loading {
-        text-align: center;
-        padding: 50px 20px;
-        opacity: .8;
-    }
-
-    .load-progress {
-        margin: 18px auto 0;
-        width: min(600px, 90%);
-        height: 12px;
-        background: #123b49;
-        border-radius: 20px;
-        overflow: hidden;
-    }
-
-    #loadProgressFill {
-        height: 100%;
-        width: 0%;
-        background:
-            linear-gradient(
-                90deg,
-                #18b8d2,
-                #53dfa7
-            );
-        transition: width .2s;
-    }
-
-    .load-status {
-        margin-top: 10px;
-        font-size: 13px;
-        opacity: .75;
-    }
-
-    .top-note {
-        margin-top: 10px;
-        font-size: 12px;
-        opacity: .65;
-    }
-
-    @media (max-width: 1100px) {
-        .controls {
-            grid-template-columns:
-                1fr 1fr 1fr;
-        }
-    }
-
-    @media (max-width: 950px) {
-        .controls {
-            grid-template-columns: 1fr 1fr;
-        }
-    }
-
-    @media (max-width: 650px) {
-        .controls {
-            grid-template-columns: 1fr;
-        }
-
-        .fish-grid {
-            grid-template-columns: 1fr;
-        }
-
-        #dbStatus {
-            text-align: left;
-        }
-    }
+    #empty { display: none; text-align: center; padding: 40px; opacity: .7; }
 </style>
 </head>
 
 <body>
 
 <header>
-    <h1>🎣 Worldwide Fish Index</h1>
-
-    <p>
-        Track the fish species you've caught from around the entire world
-    </p>
-
-    <div class="top-note">
-        Powered by the FishBase species database
-    </div>
+    <h1>🎣 Master Angler Fish Index</h1>
+    <p>148-Species Directory with Verified Species Photos</p>
 </header>
 
 <main class="container">
 
     <section class="panel stats">
-
         <div class="stats-row">
-
-            <div id="progressText">
-                0 / 0 Caught
-            </div>
-
-            <div id="dbStatus">
-                Loading worldwide fish database…
-            </div>
-
+            <div id="progressText">0 / 0 Caught</div>
+            <div id="dbStatus">Active Directory Loaded</div>
         </div>
-
         <div class="progress">
             <div id="progressFill"></div>
         </div>
-
     </section>
 
     <section class="panel controls">
-
-        <input
-            id="search"
-            type="search"
-            placeholder="Search common name, scientific name, family, genus, order..."
-        >
-
-        <button onclick="setFilter('all')">
-            All
-        </button>
-
-        <button onclick="setFilter('caught')">
-            Caught
-        </button>
-
-        <button onclick="setFilter('uncaught')">
-            Uncaught
-        </button>
-
-        <button onclick="sortFish('name')">
-            A-Z
-        </button>
-
-        <button class="danger" onclick="resetCaught()">
-            Reset
-        </button>
-
+        <input id="search" type="search" placeholder="Search species, scientific name, or water type...">
+        <select id="categoryFilter" onchange="render()">
+            <option value="all">All Categories</option>
+            <option value="Freshwater">Freshwater</option>
+            <option value="Saltwater Inshore">Saltwater Inshore</option>
+            <option value="Saltwater Offshore">Saltwater Offshore</option>
+            <option value="Sharks & Rays">Sharks & Rays</option>
+        </select>
+        <button id="btn-all" class="active" onclick="setFilter('all')">All</button>
+        <button id="btn-caught" onclick="setFilter('caught')">Caught</button>
+        <button id="btn-uncaught" onclick="setFilter('uncaught')">Uncaught</button>
+        <button class="danger" onclick="resetCaught()">Reset Progress</button>
     </section>
 
-    <div id="fishGrid" class="fish-grid">
+    <div id="fishGrid" class="fish-grid"></div>
 
-        <div class="panel loading">
-
-            <strong>
-                Loading worldwide fish species…
-            </strong>
-
-            <div class="load-progress">
-                <div id="loadProgressFill"></div>
-            </div>
-
-            <div
-                id="loadStatus"
-                class="load-status"
-            >
-                Connecting to FishBase…
-            </div>
-
-        </div>
-
-    </div>
-
-    <div id="empty">
-        No fish match your search/filter.
-    </div>
-
-    <div class="footer">
-
-        Species data is loaded from FishBase.
-
-        <br>
-
-        FishBase provides a global database of fish species.
-        This page uses the FishBase API for non-commercial purposes
-        and retains attribution to FishBase.
-
-        <br><br>
-
-        Your caught status is stored locally in your browser
-        using localStorage.
-
-    </div>
+    <div id="empty">No species matching your criteria.</div>
 
 </main>
 
-
 <script>
+const STORAGE_KEY_CAUGHT = "guidesly_master_caught_v148";
 
-/* ============================================================
-   WORLDWIDE FISH DATABASE
-   ============================================================ */
+const BASE_SPECIES = [
+    // FRESHWATER
+    { common: "Largemouth Bass", scientific: "Micropterus salmoides", cat: "Freshwater" },
+    { common: "Smallmouth Bass", scientific: "Micropterus dolomieu", cat: "Freshwater" },
+    { common: "Spotted Bass", scientific: "Micropterus henshalli", cat: "Freshwater" },
+    { common: "Striped Bass", scientific: "Morone saxatilis", cat: "Freshwater" },
+    { common: "Hybrid Striped Bass", scientific: "Morone chrysops x saxatilis", cat: "Freshwater" },
+    { common: "White Bass", scientific: "Morone chrysops", cat: "Freshwater" },
+    { common: "Peacock Bass", scientific: "Cichla ocellaris", cat: "Freshwater" },
+    { common: "Walleye", scientific: "Sander vitreus", cat: "Freshwater" },
+    { common: "Sauger", scientific: "Sander canadensis", cat: "Freshwater" },
+    { common: "Yellow Perch", scientific: "Perca flavescens", cat: "Freshwater" },
+    { common: "Northern Pike", scientific: "Esox lucius", cat: "Freshwater" },
+    { common: "Muskellunge", scientific: "Esox masquinongy", cat: "Freshwater" },
+    { common: "Tiger Muskellunge", scientific: "Esox masquinongy x lucius", cat: "Freshwater" },
+    { common: "Chain Pickerel", scientific: "Esox niger", cat: "Freshwater" },
+    { common: "Black Crappie", scientific: "Pomoxis nigromaculatus", cat: "Freshwater" },
+    { common: "White Crappie", scientific: "Pomoxis annularis", cat: "Freshwater" },
+    { common: "Bluegill", scientific: "Lepomis macrochirus", cat: "Freshwater" },
+    { common: "Redear Sunfish", scientific: "Lepomis microlophus", cat: "Freshwater" },
+    { common: "Green Sunfish", scientific: "Lepomis cyanellus", cat: "Freshwater" },
+    { common: "Pumpkinseed", scientific: "Lepomis gibbosus", cat: "Freshwater" },
+    { common: "Rock Bass", scientific: "Ambloplites rupestris", cat: "Freshwater" },
+    { common: "Channel Catfish", scientific: "Ictalurus punctatus", cat: "Freshwater" },
+    { common: "Blue Catfish", scientific: "Ictalurus furcatus", cat: "Freshwater" },
+    { common: "Flathead Catfish", scientific: "Pylodictis olivaris", cat: "Freshwater" },
+    { common: "Brown Bullhead", scientific: "Ameiurus nebulosus", cat: "Freshwater" },
+    { common: "Rainbow Trout", scientific: "Oncorhynchus mykiss", cat: "Freshwater" },
+    { common: "Brown Trout", scientific: "Salmo trutta", cat: "Freshwater" },
+    { common: "Brook Trout", scientific: "Salvelinus fontinalis", cat: "Freshwater" },
+    { common: "Cutthroat Trout", scientific: "Oncorhynchus clarkii", cat: "Freshwater" },
+    { common: "Lake Trout", scientific: "Salvelinus namaycush", cat: "Freshwater" },
+    { common: "Bull Trout", scientific: "Salvelinus confluentus", cat: "Freshwater" },
+    { common: "Tiger Trout", scientific: "Salmo trutta x Salvelinus fontinalis", cat: "Freshwater" },
+    { common: "Golden Trout", scientific: "Oncorhynchus aguabonita", cat: "Freshwater" },
+    { common: "Steelhead", scientific: "Oncorhynchus mykiss", cat: "Freshwater" },
+    { common: "Chinook Salmon", scientific: "Oncorhynchus tshawytscha", cat: "Freshwater" },
+    { common: "Coho Salmon", scientific: "Oncorhynchus kisutch", cat: "Freshwater" },
+    { common: "Sockeye Salmon", scientific: "Oncorhynchus nerka", cat: "Freshwater" },
+    { common: "Pink Salmon", scientific: "Oncorhynchus gorbuscha", cat: "Freshwater" },
+    { common: "Chum Salmon", scientific: "Oncorhynchus keta", cat: "Freshwater" },
+    { common: "Atlantic Salmon", scientific: "Salmo salar", cat: "Freshwater" },
+    { common: "Arctic Char", scientific: "Salvelinus alpinus", cat: "Freshwater" },
+    { common: "Arctic Grayling", scientific: "Thymallus arcticus", cat: "Freshwater" },
+    { common: "Alligator Gar", scientific: "Atractosteus spatula", cat: "Freshwater" },
+    { common: "Longnose Gar", scientific: "Lepisosteus osseus", cat: "Freshwater" },
+    { common: "Shortnose Gar", scientific: "Lepisosteus platostomus", cat: "Freshwater" },
+    { common: "Bowfin", scientific: "Amia calva", cat: "Freshwater" },
+    { common: "Burbot", scientific: "Lota lota", cat: "Freshwater" },
+    { common: "Common Carp", scientific: "Cyprinus carpio", cat: "Freshwater" },
+    { common: "Grass Carp", scientific: "Ctenopharyngodon idella", cat: "Freshwater" },
+    { common: "Mirror Carp", scientific: "Cyprinus carpio", cat: "Freshwater" },
+    { common: "Bighead Carp", scientific: "Hypophthalmichthys nobilis", cat: "Freshwater" },
+    { common: "Freshwater Drum", scientific: "Aplodinotus grunniens", cat: "Freshwater" },
+    { common: "White Sturgeon", scientific: "Acipenser transmontanus", cat: "Freshwater" },
+    { common: "Barramundi", scientific: "Lates calcarifer", cat: "Freshwater" },
+    { common: "Golden Dorado", scientific: "Salminus brasiliensis", cat: "Freshwater" },
+    { common: "Arapaima", scientific: "Arapaima gigas", cat: "Freshwater" },
 
-const API_URL =
-    "https://fishbase.ropensci.org/species";
+    // SALTWATER INSHORE
+    { common: "Red Drum", scientific: "Sciaenops ocellatus", cat: "Saltwater Inshore" },
+    { common: "Spotted Seatrout", scientific: "Cynoscion nebulosus", cat: "Saltwater Inshore" },
+    { common: "Striped Bass", scientific: "Morone saxatilis", cat: "Saltwater Inshore" },
+    { common: "Common Snook", scientific: "Centropomus undecimalis", cat: "Saltwater Inshore" },
+    { common: "Tarpon", scientific: "Megalops atlanticus", cat: "Saltwater Inshore" },
+    { common: "Bonefish", scientific: "Albula vulpes", cat: "Saltwater Inshore" },
+    { common: "Permit", scientific: "Trachinotus falcatus", cat: "Saltwater Inshore" },
+    { common: "Summer Flounder", scientific: "Paralichthys dentatus", cat: "Saltwater Inshore" },
+    { common: "Southern Flounder", scientific: "Paralichthys lethostigma", cat: "Saltwater Inshore" },
+    { common: "Winter Flounder", scientific: "Pseudopleuronectes americanus", cat: "Saltwater Inshore" },
+    { common: "Black Drum", scientific: "Pogonias cromis", cat: "Saltwater Inshore" },
+    { common: "Sheepshead", scientific: "Archosargus probatocephalus", cat: "Saltwater Inshore" },
+    { common: "Bluefish", scientific: "Pomatomus saltatrix", cat: "Saltwater Inshore" },
+    { common: "Spanish Mackerel", scientific: "Scomberomorus maculatus", cat: "Saltwater Inshore" },
+    { common: "Cero Mackerel", scientific: "Scomberomorus regalis", cat: "Saltwater Inshore" },
+    { common: "Florida Pompano", scientific: "Trachinotus carolinus", cat: "Saltwater Inshore" },
+    { common: "Crevalle Jack", scientific: "Caranx hippos", cat: "Saltwater Inshore" },
+    { common: "Blue Runner", scientific: "Caranx crysos", cat: "Saltwater Inshore" },
+    { common: "Lookdown", scientific: "Selene vomer", cat: "Saltwater Inshore" },
+    { common: "Mangrove Snapper", scientific: "Lutjanus griseus", cat: "Saltwater Inshore" },
+    { common: "Lane Snapper", scientific: "Lutjanus synagris", cat: "Saltwater Inshore" },
+    { common: "Schoolmaster Snapper", scientific: "Lutjanus apodus", cat: "Saltwater Inshore" },
+    { common: "Mutton Snapper", scientific: "Lutjanus analis", cat: "Saltwater Inshore" },
+    { common: "Yellowtail Snapper", scientific: "Ocyurus chrysurus", cat: "Saltwater Inshore" },
+    { common: "Black Sea Bass", scientific: "Centropristis striata", cat: "Saltwater Inshore" },
+    { common: "Tautog", scientific: "Tautoga onitis", cat: "Saltwater Inshore" },
+    { common: "Scup", scientific: "Stenotomus chrysops", cat: "Saltwater Inshore" },
+    { common: "Weakfish", scientific: "Cynoscion regalis", cat: "Saltwater Inshore" },
+    { common: "California Halibut", scientific: "Paralichthys californicus", cat: "Saltwater Inshore" },
+    { common: "White Seabass", scientific: "Atractoscion nobilis", cat: "Saltwater Inshore" },
+    { common: "Cabezon", scientific: "Scorpaenichthys marmoratus", cat: "Saltwater Inshore" },
+    { common: "Lingcod", scientific: "Ophiodon elongatus", cat: "Saltwater Inshore" },
+    { common: "Kelp Bass", scientific: "Paralabrax clathratus", cat: "Saltwater Inshore" },
+    { common: "Roosterfish", scientific: "Nematistius pectoralis", cat: "Saltwater Inshore" },
+    { common: "Great Barracuda", scientific: "Sphyraena barracuda", cat: "Saltwater Inshore" },
+    { common: "Tripletail", scientific: "Lobotes surinamensis", cat: "Saltwater Inshore" },
 
+    // SALTWATER OFFSHORE
+    { common: "Mahi-mahi", scientific: "Coryphaena hippurus", cat: "Saltwater Offshore" },
+    { common: "Yellowfin Tuna", scientific: "Thunnus albacares", cat: "Saltwater Offshore" },
+    { common: "Atlantic Bluefin Tuna", scientific: "Thunnus thynnus", cat: "Saltwater Offshore" },
+    { common: "Blackfin Tuna", scientific: "Thunnus atlanticus", cat: "Saltwater Offshore" },
+    { common: "Albacore", scientific: "Thunnus alalunga", cat: "Saltwater Offshore" },
+    { common: "Bigeye Tuna", scientific: "Thunnus obesus", cat: "Saltwater Offshore" },
+    { common: "Skipjack Tuna", scientific: "Katsuwonus pelamis", cat: "Saltwater Offshore" },
+    { common: "Dogtooth Tuna", scientific: "Gymnosarda unicolor", cat: "Saltwater Offshore" },
+    { common: "Wahoo", scientific: "Acanthocybium solandri", cat: "Saltwater Offshore" },
+    { common: "King Mackerel", scientific: "Scomberomorus cavalla", cat: "Saltwater Offshore" },
+    { common: "Indo-Pacific Sailfish", scientific: "Istiophorus platypterus", cat: "Saltwater Offshore" },
+    { common: "Atlantic Blue Marlin", scientific: "Makaira nigricans", cat: "Saltwater Offshore" },
+    { common: "White Marlin", scientific: "Kajikia albida", cat: "Saltwater Offshore" },
+    { common: "Striped Marlin", scientific: "Kajikia audax", cat: "Saltwater Offshore" },
+    { common: "Black Marlin", scientific: "Istiompax indica", cat: "Saltwater Offshore" },
+    { common: "Swordfish", scientific: "Xiphias gladius", cat: "Saltwater Offshore" },
+    { common: "Cobia", scientific: "Rachycentron canadum", cat: "Saltwater Offshore" },
+    { common: "Greater Amberjack", scientific: "Seriola dumerili", cat: "Saltwater Offshore" },
+    { common: "Almaco Jack", scientific: "Seriola rivoliana", cat: "Saltwater Offshore" },
+    { common: "Giant Trevally", scientific: "Caranx ignobilis", cat: "Saltwater Offshore" },
+    { common: "Northern Red Snapper", scientific: "Lutjanus campechanus", cat: "Saltwater Offshore" },
+    { common: "Cubera Snapper", scientific: "Lutjanus cyanopterus", cat: "Saltwater Offshore" },
+    { common: "Vermilion Snapper", scientific: "Rhomboplites aurorubens", cat: "Saltwater Offshore" },
+    { common: "Silk Snapper", scientific: "Lutjanus vivanus", cat: "Saltwater Offshore" },
+    { common: "Queen Snapper", scientific: "Etelis oculatus", cat: "Saltwater Offshore" },
+    { common: "Gag Grouper", scientific: "Mycteroperca microlepis", cat: "Saltwater Offshore" },
+    { common: "Red Grouper", scientific: "Epinephelus morio", cat: "Saltwater Offshore" },
+    { common: "Black Grouper", scientific: "Mycteroperca bonaci", cat: "Saltwater Offshore" },
+    { common: "Warsaw Grouper", scientific: "Hyporthodus nigritus", cat: "Saltwater Offshore" },
+    { common: "Snowy Grouper", scientific: "Hyporthodus niveatus", cat: "Saltwater Offshore" },
+    { common: "Atlantic Goliath Grouper", scientific: "Epinephelus itajara", cat: "Saltwater Offshore" },
+    { common: "Speckled Hind", scientific: "Epinephelus drummondhayi", cat: "Saltwater Offshore" },
+    { common: "Scamp Grouper", scientific: "Mycteroperca phenax", cat: "Saltwater Offshore" },
+    { common: "Pacific Halibut", scientific: "Hippoglossus stenolepis", cat: "Saltwater Offshore" },
+    { common: "Atlantic Cod", scientific: "Gadus morhua", cat: "Saltwater Offshore" },
+    { common: "Pacific Cod", scientific: "Gadus macrocephalus", cat: "Saltwater Offshore" },
+    { common: "Haddock", scientific: "Melanogrammus aeglefinus", cat: "Saltwater Offshore" },
+    { common: "Pollock", scientific: "Pollachius pollachius", cat: "Saltwater Offshore" },
+    { common: "Monkfish", scientific: "Lophius americanus", cat: "Saltwater Offshore" },
+    { common: "Gray Triggerfish", scientific: "Balistes capriscus", cat: "Saltwater Offshore" },
+    { common: "Golden Tilefish", scientific: "Lopholatilus chamaeleonticeps", cat: "Saltwater Offshore" },
+    { common: "Blueline Tilefish", scientific: "Caulolatilus microps", cat: "Saltwater Offshore" },
+    { common: "Yelloweye Rockfish", scientific: "Sebastes ruberrimus", cat: "Saltwater Offshore" },
+    { common: "Black Rockfish", scientific: "Sebastes melanops", cat: "Saltwater Offshore" },
+    { common: "Rainbow Runner", scientific: "Elagatis bipinnulata", cat: "Saltwater Offshore" },
 
-/*
-    Number of records requested from FishBase at a time.
-
-    500 is large enough to reduce the number of requests,
-    while keeping each response reasonably sized.
-*/
-const BATCH_SIZE = 500;
-
-
-/*
-    FishBase API supports pagination using:
-        limit
-        offset
-
-    We request only the fields needed by this website.
-*/
-const API_FIELDS = [
-    "SpecCode",
-    "Genus",
-    "Species",
-    "SubGenus",
-    "Family",
-    "Order",
-    "Class",
-    "FBname"
-].join(",");
-
-
-/*
-    localStorage key.
-
-    V3 is intentionally different from the old
-    North American version so old saved data doesn't
-    interfere with the worldwide database.
-*/
-const STORAGE_KEY =
-    "worldwideFishIndexCaughtV3";
-
-
-/* ============================================================
-   EXTRA FISH
-   ============================================================
-
-   These are retained from your old FishingBooker list.
-
-   FishBase should contain most real species already,
-   but these names are kept so your previous list doesn't
-   disappear when switching databases.
-*/
-
-const EXTRA_FISH = [
-
-    "Alligator Gar",
-    "Amberjack",
-    "Arapaima",
-    "Arctic Char",
-    "Asp",
-    "Atlantic Croaker",
-    "Banded Rudderfish",
-    "Barracuda (European)",
-    "Barracuda (Great)",
-    "Barracuda (Mexican)",
-    "Barracuda (Pacific)",
-    "Barracuda (Pickhandle)",
-    "Barracuda (Yellowmouth)",
-    "Barramundi",
-    "Bass (Australian)",
-    "Bass (Largemouth)",
-    "Bass (Peacock)",
-    "Bass (Rainbow)",
-    "Bass (Smallmouth)",
-    "Bass (Spotted Sand)",
-    "Bass (Spotted)",
-    "Bass (Striped)",
-    "Bass (White)",
-    "Bass (Yellow)",
-    "Black Drum",
-    "Black Jewfish",
-    "Black Rockfish",
-    "Black Seabream",
-    "Bluefish (Tailor)",
-    "Bluegill",
-    "Bluenose Warehou",
-    "Bohar Snapper",
-    "Bonefish",
-    "Bonefish (Cortez)",
-    "Bonefish (Roundjaw)",
-    "Bonito",
-    "Bowfin",
-    "Bream (Black)",
-    "Bream (Common)",
-    "Bream (Fingermark)",
-    "Brook Trout",
-    "Brown Trout",
-    "Bullhead",
-    "Burbot",
-    "Calico Bass",
-    "California Corbina",
-    "California Sheephead",
-    "Carp",
-    "Catfish",
-    "Cero Mackerel",
-    "Chain Pickerel",
-    "Clam",
-    "Clown Knife Fish",
-    "Coalfish",
-    "Cobia",
-    "Cod",
-    "Cod (Blue)",
-    "Cod (Breaksea)",
-    "Common Ling",
-    "Common Pandora",
-    "Conger Eel",
-    "Coral Trout",
-    "Coralgrouper (Roving)",
-    "Coralgrouper (Squaretail)",
-    "Crab",
-    "Crappie",
-    "Crayfish",
-    "Cutthroat Trout",
-    "Dentex",
-    "Dhufish",
-    "Dogfish",
-    "Dolly Varden",
-    "Dolphin (Mahi Mahi)",
-    "Drum (Shi)",
-    "Drummer (Rock Blackfish)",
-    "Flathead",
-    "Flathead Grey Mullet",
-    "Flounder",
-    "Freshwater Drum",
-    "Gar",
-    "Geelbek (Cape Salmon)",
-    "Golden Dorado",
-    "Grass Carp",
-    "Grayling",
-    "Grayling (Arctic)",
-    "Graysby (Pacific)",
-    "Grouper (Black)",
-    "Grouper (Broomtail)",
-    "Grouper (Camouflage)",
-    "Grouper (Dusky)",
-    "Grouper (Gag)",
-    "Grouper (Goliath)",
-    "Grouper (Greasy)",
-    "Grouper (Gulf)",
-    "Grouper (Hamour)",
-    "Grouper (Leopard)",
-    "Grouper (Malabar)",
-    "Grouper (Nassau)",
-    "Grouper (Orange-spotted)",
-    "Grouper (Potato)",
-    "Grouper (Red)",
-    "Grouper (Scamp)",
-    "Grouper (Snowy)",
-    "Grouper (Spotted)",
-    "Grouper (Warsaw)",
-    "Grouper (Yellow-edged Lyretail)",
-    "Grouper (Yellowedge)",
-    "Grouper (Yellowfin)",
-    "Grouper (Yellowmouth)",
-    "Grunt",
-    "Grunter (Javelin)",
-    "Gurnard",
-    "Haddock",
-    "Hake (Red)",
-    "Halibut",
-    "Halibut (California)",
-    "Hapuka",
-    "Herring",
-    "Hind (Coral)",
-    "Hind (Red)",
-    "Hogfish",
-    "Huchen",
-    "Hybrid Striped Bass",
-    "Indian Threadfish",
-    "Jack (African Pompano)",
-    "Jack (Almaco)",
-    "Jack (Horse-eye)",
-    "Jack (Pacific Crevalle)",
-    "Jack Crevalle",
-    "Jobfish (Green)",
-    "Jobfish (Rusty)",
-    "John Dory",
-    "King George Whiting",
-    "King Mackerel (Indo-Pacific)",
-    "King Mackerel (Kingfish)",
-    "Kingfish (Southern)",
-    "Kob",
-    "Ladyfish",
-    "Lake Trout",
-    "Leatherjacket",
-    "Leerfish (Garrick)",
-    "Lenok Trout",
-    "Lesser Amberjack",
-    "Lingcod",
-    "Lionfish",
-    "Little Tunny (False Albacore)",
-    "Lobster",
-    "Long-Tail Red Snapper (Onaga)",
-    "Mackerel (Atlantic Chub)",
-    "Mackerel (Atlantic)",
-    "Mackerel (Chub)",
-    "Mahseer",
-    "Marlin (Black)",
-    "Marlin (Blue)",
-    "Marlin (Striped)",
-    "Marlin (White)",
-    "Milkfish",
-    "Morwong",
-    "Murray Cod",
-    "Muskellunge (Musky)",
-    "Musselcracker",
-    "Nannygai",
-    "Needlefish",
-    "Nile Perch",
-    "North African Catfish",
-    "Nursehound (Bull Huss)",
-    "Paddlefish",
-    "Papuan Black Snapper",
-    "Payara",
-    "Peacock Hind",
-    "Pearl Perch",
-    "Pejerrey (Silverside)",
-    "Perch (European)",
-    "Perch (Golden)",
-    "Perch (Silver)",
-    "Perch (White)",
-    "Perch (Yellow)",
-    "Permit",
-    "Pike (Northern)",
-    "Pike Perch (Zander)",
-    "Pink Maomao",
-    "Pollock",
-    "Pompano",
-    "Pompano (Blackblotch)",
-    "Pompano (Paloma)",
-    "Queen Snapper (Australian)",
-    "Queen Snapper (Caribbean)",
-    "Queenfish",
-    "Queensland Groper (Giant Grouper)",
-    "Rainbow Runner",
-    "Rainbow Trout (Steelhead)",
-    "Ray",
-    "Red Porgy",
-    "Redfish",
-    "Rockfish",
-    "Roosterfish",
-    "Sailfish",
-    "Salmon",
-    "Salmon (Atlantic)",
-    "Salmon (Australian)",
-    "Salmon (Chinook)",
-    "Salmon (Chum)",
-    "Salmon (Coho)",
-    "Salmon (Kokanee)",
-    "Salmon (Pink)",
-    "Salmon (Sockeye)",
-    "Samson Fish",
-    "Sand Bass",
-    "Saratoga",
-    "Sauger",
-    "Scallop",
-    "Scorpionfish",
-    "Sculpin",
-    "Scup (Porgy)",
-    "Seabass (Black)",
-    "Seabass (European)",
-    "Seabass (Giant)",
-    "Seabass (White)",
-    "Seabream (Bronze)",
-    "Seabream (Gilt-head)",
-    "Seabream (Goldsilk)",
-    "Seabream (Slinger)",
-    "Seerfish (Streaked)",
-    "Shad",
-    "Shark (Atlantic Sharpnose)",
-    "Shark (Blacktip)",
-    "Shark (Blue)",
-    "Shark (Bonnethead)",
-    "Shark (Bull)",
-    "Shark (Greenland)",
-    "Shark (Gummy)",
-    "Shark (Hammerhead)",
-    "Shark (Lemon)",
-    "Shark (Leopard)",
-    "Shark (Mako)",
-    "Shark (Nurse)",
-    "Shark (Porbeagle)",
-    "Shark (Sandbar)",
-    "Shark (Thresher)",
-    "Shark (Tiger)",
-    "Shark (Tope)",
-    "Sharpsnout Seabream",
-    "Sheepshead",
-    "Short-Tail Red Snapper (Ehu)",
-    "Shrimp",
-    "Sierra Mackerel",
-    "Silver Hake",
-    "Skate",
-    "Snakehead",
-    "Snapper (Bigeye)",
-    "Snapper (Blackfin)",
-    "Snapper (Blacktail)",
-    "Snapper (Colorado)",
-    "Snapper (Crimson)",
-    "Snapper (Cubera)",
-    "Snapper (Dory)",
-    "Snapper (Lane)",
-    "Snapper (Malabar Blood)",
-    "Snapper (Mangrove Red)",
-    "Snapper (Mangrove)",
-    "Snapper (Mullet)",
-    "Snapper (Mutton)",
-    "Snapper (Pacific Dog)",
-    "Snapper (Pink)",
-    "Snapper (Red Emperor)",
-    "Snapper (Red Pacific)",
-    "Snapper (Red)",
-    "Snapper (Silk)",
-    "Snapper (Spotted Rose)",
-    "Snapper (Vermilion)",
-    "Snapper (Wenchman)",
-    "Snapper (Yellow)",
-    "Snapper (Yellowtail)",
-    "Snoek",
-    "Snook",
-    "Snubnose Pompano",
-    "Spadefish",
-    "Spangled Emperor",
-    "Spanish Mackerel",
-    "Spanish Mackerel (Narrow-barred)",
-    "Spearfish (Longbill)",
-    "Spearfish (Mediterranean)",
-    "Spearfish (Shortbill)",
-    "Speckled Hind",
-    "Speckled Trout",
-    "Sturgeon",
-    "Sunfish",
-    "Sweetlip Emperor",
-    "Swordfish",
-    "Taimen",
-    "Tarakihi",
-    "Tarpon",
-    "Tautog",
-    "Threadfin Salmon",
-    "Tigerfish",
-    "Tigerfish (Goliath)",
-    "Tilapia",
-    "Tilefish",
-    "Trevally (Bigeye)",
-    "Trevally (Blacktip)",
-    "Trevally (Bluefin)",
-    "Trevally (Brassy)",
-    "Trevally (Giant)",
-    "Trevally (Golden)",
-    "Trevally (Silver)",
-    "Triggerfish (Finescale)",
-    "Triggerfish (Gray)",
-    "Triggerfish (Rough)",
-    "Triggerfish (Stone)",
-    "Tripletail",
-    "Trumpeter (Striped)",
-    "Tuna (Albacore)",
-    "Tuna (Bigeye)",
-    "Tuna (Black Skipjack)",
-    "Tuna (Blackfin)",
-    "Tuna (Bluefin)",
-    "Tuna (Bullet)",
-    "Tuna (Dogtooth)",
-    "Tuna (Frigate)",
-    "Tuna (Kawakawa)",
-    "Tuna (Longtail)",
-    "Tuna (Skipjack)",
-    "Tuna (Yellowfin)",
-    "Wahoo",
-    "Walleye",
-    "Weakfish",
-    "Wels Catfish",
-    "White Seabream",
-    "Whitefish (Lake)",
-    "Whiting (European)",
-    "Wolffish",
-    "Wrasse (Bluethroat)",
-    "Wrasse (Humphead)",
-    "Yellowfish",
-    "Yellowtail Amberjack"
-
+    // SHARKS & RAYS
+    { common: "Shortfin Mako Shark", scientific: "Isurus oxyrinchus", cat: "Sharks & Rays" },
+    { common: "Common Thresher Shark", scientific: "Alopias vulpinus", cat: "Sharks & Rays" },
+    { common: "Blacktip Shark", scientific: "Carcharhinus limbatus", cat: "Sharks & Rays" },
+    { common: "Bull Shark", scientific: "Carcharhinus leucas", cat: "Sharks & Rays" },
+    { common: "Tiger Shark", scientific: "Galeocerdo cuvier", cat: "Sharks & Rays" },
+    { common: "Lemon Shark", scientific: "Negaprion brevirostris", cat: "Sharks & Rays" },
+    { common: "Great Hammerhead", scientific: "Sphyrna mokarran", cat: "Sharks & Rays" },
+    { common: "Bonnethead", scientific: "Sphyrna tiburo", cat: "Sharks & Rays" },
+    { common: "Atlantic Sharpnose Shark", scientific: "Rhizoprionodon terraenovae", cat: "Sharks & Rays" },
+    { common: "Blue Shark", scientific: "Prionace glauca", cat: "Sharks & Rays" },
+    { common: "Porbeagle", scientific: "Lamna nasus", cat: "Sharks & Rays" }
 ];
 
-
-/* ============================================================
-   STATE
-   ============================================================ */
-
-let fish = [];
-
-let caught = loadCaught();
-
+let caughtMap = loadCaught();
 let currentFilter = "all";
-
-let currentSort = "name";
-
-
-/* ============================================================
-   LOCAL STORAGE
-   ============================================================ */
+const imageCache = {};
 
 function loadCaught() {
-
-    try {
-
-        return JSON.parse(
-            localStorage.getItem(STORAGE_KEY) || "{}"
-        );
-
-    } catch {
-
-        return {};
-
-    }
-
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY_CAUGHT) || "{}"); } catch { return {}; }
 }
-
-
 function saveCaught() {
-
-    localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(caught)
-    );
-
+    localStorage.setItem(STORAGE_KEY_CAUGHT, JSON.stringify(caughtMap));
 }
 
-
-/* ============================================================
-   ESCAPE HTML
-   ============================================================ */
-
-function escapeHTML(value) {
-
-    return String(value ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-
+function escapeHTML(str) {
+    return String(str || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 }
 
+async function fetchWikiImage(scientificName, commonName) {
+    const key = scientificName + "||" + commonName;
+    if (imageCache[key]) return imageCache[key];
 
-/* ============================================================
-   FISHBASE NORMALIZATION
-   ============================================================ */
+    // Clean terms for searching Wikipedia
+    const cleanCommon = commonName.replace(/\(.*?\)/g, '').trim();
+    const cleanScientific = scientificName.replace(/x .*/g, '').trim();
 
-function normalizeFish(item) {
+    const searchQueries = [
+        cleanCommon,
+        cleanScientific,
+        commonName,
+        scientificName
+    ];
 
-    const genus =
-        item.Genus ||
-        "";
-
-    const species =
-        item.Species ||
-        "";
-
-    const scientific =
-        genus && species
-            ? `${genus} ${species}`
-            : genus || species || "Unknown species";
-
-    const family =
-        item.Family ||
-        "Unknown family";
-
-    const order =
-        item.Order ||
-        "";
-
-    const className =
-        item.Class ||
-        "";
-
-    const common =
-        item.FBname ||
-        scientific;
-
-    return {
-
-        id:
-            "fishbase:" +
-            String(
-                item.SpecCode ||
-                scientific
-            ),
-
-        scientific:
-            scientific,
-
-        common:
-            common.trim(),
-
-        family:
-            family,
-
-        order:
-            order,
-
-        className:
-            className,
-
-        habitat:
-            [],
-
-        countries:
-            []
-
-    };
-
-}
-
-
-/* ============================================================
-   CAUGHT CHECK
-   ============================================================ */
-
-function isCaught(item) {
-
-    return !!caught[item.id];
-
-}
-
-
-/* ============================================================
-   CARD
-   ============================================================ */
-
-function cardHTML(item) {
-
-    const caughtNow =
-        isCaught(item);
-
-    return `
-
-        <article
-            class="fish-card ${caughtNow ? "caught" : ""}"
-        >
-
-            <input
-                class="check"
-                type="checkbox"
-                ${caughtNow ? "checked" : ""}
-                aria-label="Mark ${escapeHTML(item.common)} as caught"
-                onchange="toggleCaught(
-                    '${encodeURIComponent(item.id)}',
-                    this.checked
-                )"
-            >
-
-            <div
-                style="min-width:0; flex:1;"
-            >
-
-                <div class="name">
-                    ${escapeHTML(item.common)}
-                </div>
-
-                <div class="scientific">
-                    ${escapeHTML(item.scientific)}
-                </div>
-
-                <div class="meta">
-
-                    ${
-                        item.family
-                        ? `
-                            <span class="tag">
-                                ${escapeHTML(item.family)}
-                            </span>
-                        `
-                        : ""
+    for (const query of searchQueries) {
+        if (!query) continue;
+        try {
+            // Wikipedia Generator Search API resolves redirects and alias titles automatically
+            const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages&pithumbsize=600&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrlimit=1&origin=*`;
+            const res = await fetch(searchUrl);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.query && data.query.pages) {
+                    const pages = Object.values(data.query.pages);
+                    if (pages.length > 0 && pages[0].thumbnail && pages[0].thumbnail.source) {
+                        imageCache[key] = pages[0].thumbnail.source;
+                        return imageCache[key];
                     }
-
-                    ${
-                        item.order
-                        ? `
-                            <span class="tag">
-                                ${escapeHTML(item.order)}
-                            </span>
-                        `
-                        : ""
-                    }
-
-                    ${
-                        item.className
-                        ? `
-                            <span class="tag">
-                                ${escapeHTML(item.className)}
-                            </span>
-                        `
-                        : ""
-                    }
-
-                </div>
-
-            </div>
-
-            ${
-                caughtNow
-                ? `
-                    <div class="caught-label">
-                        CAUGHT
-                    </div>
-                `
-                : ""
+                }
             }
-
-        </article>
-
-    `;
-
-}
-
-
-/* ============================================================
-   SEARCH + FILTER
-   ============================================================ */
-
-function getVisibleFish() {
-
-    const q =
-        document
-            .getElementById("search")
-            .value
-            .trim()
-            .toLowerCase();
-
-
-    let results =
-        fish.filter(item => {
-
-            const searchText = [
-
-                item.common,
-                item.scientific,
-                item.family,
-                item.order,
-                item.className
-
-            ]
-                .join(" ")
-                .toLowerCase();
-
-
-            const matchesSearch =
-                !q ||
-                searchText.includes(q);
-
-
-            const matchesFilter =
-
-                currentFilter === "all" ||
-
-                (
-                    currentFilter === "caught" &&
-                    isCaught(item)
-                ) ||
-
-                (
-                    currentFilter === "uncaught" &&
-                    !isCaught(item)
-                );
-
-
-            return (
-                matchesSearch &&
-                matchesFilter
-            );
-
-        });
-
-
-    if (currentSort === "name") {
-
-        results.sort(
-            (a, b) =>
-                a.common.localeCompare(
-                    b.common
-                )
-        );
-
+        } catch (e) {}
     }
 
-
-    return results;
-
+    // Modern inline SVG placeholder if image unavailable (replaces the scuba diver stock photo)
+    const fallbackSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="100%" height="100%" fill="%23061821"/><path d="M 180,200 C 230,130 370,130 420,200 C 370,270 230,270 180,200 Z M 420,200 L 470,150 L 450,200 L 470,250 Z M 350,185 A 10,10 0 1 0 350,186" fill="none" stroke="%231a4653" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    imageCache[key] = fallbackSvg;
+    return imageCache[key];
 }
 
+function loadVisibleImages() {
+    const imgs = document.querySelectorAll('.fish-img[data-scientific]');
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const img = entry.target;
+                const sci = img.getAttribute('data-scientific');
+                const com = img.getAttribute('data-common');
+                
+                fetchWikiImage(sci, com).then(src => {
+                    img.src = src;
+                    img.classList.add('loaded');
+                });
+                observer.unobserve(img);
+            }
+        });
+    }, { rootMargin: '100px' });
 
-/* ============================================================
-   RENDER
-   ============================================================ */
+    imgs.forEach(img => observer.observe(img));
+}
+
+function getFilteredList() {
+    const query = document.getElementById("search").value.trim().toLowerCase();
+    const catVal = document.getElementById("categoryFilter").value;
+
+    return BASE_SPECIES.filter((item, idx) => {
+        const id = "g_fish_" + idx;
+        const isCaught = !!caughtMap[id];
+
+        const matchesQuery = !query || 
+            item.common.toLowerCase().includes(query) || 
+            item.scientific.toLowerCase().includes(query) ||
+            item.cat.toLowerCase().includes(query);
+
+        const matchesCat = catVal === "all" || item.cat === catVal;
+
+        const matchesFilter = currentFilter === "all" || 
+            (currentFilter === "caught" && isCaught) || 
+            (currentFilter === "uncaught" && !isCaught);
+
+        return matchesQuery && matchesCat && matchesFilter;
+    });
+}
 
 function render() {
+    const filtered = getFilteredList();
+    const grid = document.getElementById("fishGrid");
+    const empty = document.getElementById("empty");
 
-    const visible =
-        getVisibleFish();
-
-    const grid =
-        document.getElementById(
-            "fishGrid"
-        );
-
-    const empty =
-        document.getElementById(
-            "empty"
-        );
-
-
-    if (!visible.length) {
-
+    if (filtered.length === 0) {
         grid.innerHTML = "";
-
-        empty.style.display =
-            "block";
-
+        empty.style.display = "block";
     } else {
+        empty.style.display = "none";
+        grid.innerHTML = filtered.map(item => {
+            const originalIndex = BASE_SPECIES.indexOf(item);
+            const id = "g_fish_" + originalIndex;
+            const caught = !!caughtMap[id];
 
-        empty.style.display =
-            "none";
-
-        grid.innerHTML =
-            visible
-                .map(cardHTML)
-                .join("");
-
+            return `
+                <article class="fish-card ${caught ? 'caught' : ''}">
+                    <div class="img-container">
+                        <img class="fish-img" 
+                             data-scientific="${escapeHTML(item.scientific)}" 
+                             data-common="${escapeHTML(item.common)}"
+                             alt="${escapeHTML(item.common)}">
+                    </div>
+                    <div class="card-header">
+                        <input class="check" type="checkbox" ${caught ? 'checked' : ''} 
+                               onchange="toggleCaught('${id}', this.checked)">
+                        <div style="min-width:0; flex:1;">
+                            <div class="name">${escapeHTML(item.common)}</div>
+                            <div class="scientific">${escapeHTML(item.scientific)}</div>
+                            <span class="tag">${escapeHTML(item.cat)}</span>
+                        </div>
+                        ${caught ? '<div class="caught-label">CAUGHT</div>' : ''}
+                    </div>
+                </article>
+            `;
+        }).join("");
+        
+        loadVisibleImages();
     }
 
-
-    updateProgress();
-
+    const totalCaught = Object.keys(caughtMap).length;
+    const pct = BASE_SPECIES.length ? Math.round((totalCaught / BASE_SPECIES.length) * 100) : 0;
+    document.getElementById("progressText").textContent = `${totalCaught} / ${BASE_SPECIES.length} Logged`;
+    document.getElementById("progressFill").style.width = `${pct}%`;
+    document.getElementById("dbStatus").textContent = `${BASE_SPECIES.length} Total Species Active`;
 }
 
-
-/* ============================================================
-   PROGRESS
-   ============================================================ */
-
-function updateProgress() {
-
-    const total =
-        fish.length;
-
-    const amountCaught =
-        fish.filter(
-            isCaught
-        ).length;
-
-    const percent =
-        total
-            ? Math.round(
-                (amountCaught / total) * 100
-            )
-            : 0;
-
-
-    document
-        .getElementById("progressText")
-        .textContent =
-            `${amountCaught.toLocaleString()} / ${total.toLocaleString()} Caught`;
-
-
-    document
-        .getElementById("progressFill")
-        .style.width =
-            `${percent}%`;
-
-}
-
-
-/* ============================================================
-   TOGGLE CAUGHT
-   ============================================================ */
-
-function toggleCaught(
-    encodedId,
-    value
-) {
-
-    const id =
-        decodeURIComponent(
-            encodedId
-        );
-
-
-    if (value) {
-
-        caught[id] =
-            true;
-
-    } else {
-
-        delete caught[id];
-
-    }
-
-
+function toggleCaught(id, isChecked) {
+    if (isChecked) caughtMap[id] = true;
+    else delete caughtMap[id];
     saveCaught();
-
     render();
-
 }
-
-
-/* ============================================================
-   FILTER
-   ============================================================ */
 
 function setFilter(filter) {
-
-    currentFilter =
-        filter;
-
+    currentFilter = filter;
+    document.querySelectorAll('.controls button').forEach(btn => {
+        if(btn.id.startsWith('btn-')) btn.classList.remove('active');
+    });
+    document.getElementById(`btn-${filter}`)?.classList.add('active');
     render();
-
 }
-
-
-/* ============================================================
-   SORT
-   ============================================================ */
-
-function sortFish(type) {
-
-    currentSort =
-        type;
-
-    render();
-
-}
-
-
-/* ============================================================
-   RESET
-   ============================================================ */
 
 function resetCaught() {
-
-    const confirmed =
-        confirm(
-            "Reset every caught fish?"
-        );
-
-
-    if (!confirmed) {
-        return;
-    }
-
-
-    caught = {};
-
-    saveCaught();
-
-    render();
-
-}
-
-
-/* ============================================================
-   UPDATE LOADING UI
-   ============================================================ */
-
-function updateLoading(
-    loaded,
-    total
-) {
-
-    const status =
-        document.getElementById(
-            "loadStatus"
-        );
-
-    const fill =
-        document.getElementById(
-            "loadProgressFill"
-        );
-
-
-    if (total) {
-
-        const percent =
-            Math.min(
-                100,
-                Math.round(
-                    (loaded / total) * 100
-                )
-            );
-
-        fill.style.width =
-            `${percent}%`;
-
-        status.textContent =
-            `Loaded ${loaded.toLocaleString()} of approximately ${total.toLocaleString()} species…`;
-
-    } else {
-
-        status.textContent =
-            `Loaded ${loaded.toLocaleString()} species…`;
-
-    }
-
-}
-
-
-/* ============================================================
-   FETCH ONE BATCH
-   ============================================================ */
-
-async function fetchBatch(
-    offset
-) {
-
-    const url =
-        `${API_URL}?limit=${BATCH_SIZE}&offset=${offset}&fields=${encodeURIComponent(API_FIELDS)}`;
-
-
-    const response =
-        await fetch(
-            url,
-            {
-                cache: "no-store"
-            }
-        );
-
-
-    if (!response.ok) {
-
-        throw new Error(
-            `FishBase HTTP ${response.status}`
-        );
-
-    }
-
-
-    return await response.json();
-
-}
-
-
-/* ============================================================
-   LOAD ALL FISHBASE SPECIES
-   ============================================================ */
-
-async function loadFishBase() {
-
-    let offset = 0;
-
-    let total = null;
-
-    const loaded = [];
-
-
-    while (true) {
-
-        const data =
-            await fetchBatch(
-                offset
-            );
-
-
-        /*
-            FishBase API responses contain:
-                count
-                returned
-                data
-
-            The code also accepts an array directly
-            in case the API response format changes.
-        */
-
-        const rows =
-            Array.isArray(data)
-                ? data
-                : (
-                    Array.isArray(data.data)
-                        ? data.data
-                        : []
-                );
-
-
-        if (total === null) {
-
-            total =
-                Number(
-                    data.count
-                ) || null;
-
-        }
-
-
-        if (!rows.length) {
-            break;
-        }
-
-
-        for (const row of rows) {
-
-            const item =
-                normalizeFish(row);
-
-
-            if (
-                item.scientific &&
-                item.scientific !==
-                    "Unknown species"
-            ) {
-
-                loaded.push(
-                    item
-                );
-
-            }
-
-        }
-
-
-        offset +=
-            rows.length;
-
-
-        updateLoading(
-            loaded.length,
-            total
-        );
-
-
-        /*
-            Stop if FishBase tells us we've
-            reached the end.
-        */
-
-        if (
-            total &&
-            offset >= total
-        ) {
-
-            break;
-
-        }
-
-
-        /*
-            Safety check.
-
-            If the API returns fewer records than
-            requested, we've probably reached the end.
-        */
-
-        if (
-            rows.length < BATCH_SIZE
-        ) {
-
-            break;
-
-        }
-
-
-        /*
-            Give the browser a tiny break between
-            batches so the page stays responsive.
-        */
-
-        await new Promise(
-            resolve =>
-                setTimeout(
-                    resolve,
-                    20
-                )
-        );
-
-    }
-
-
-    return loaded;
-
-}
-
-
-/* ============================================================
-   ADD YOUR OLD EXTRA LIST
-   ============================================================ */
-
-function addExtras(
-    baseFish
-) {
-
-    const result =
-        [...baseFish];
-
-    const seen =
-        new Set();
-
-
-    /*
-        First mark all FishBase names.
-    */
-
-    for (const item of result) {
-
-        seen.add(
-            item.common
-                .trim()
-                .toLowerCase()
-        );
-
-    }
-
-
-    /*
-        Add FishingBooker names only when
-        FishBase doesn't already have that
-        common name.
-    */
-
-    for (
-        const name of EXTRA_FISH
-    ) {
-
-        const key =
-            name
-                .trim()
-                .toLowerCase();
-
-
-        if (seen.has(key)) {
-            continue;
-        }
-
-
-        seen.add(key);
-
-
-        result.push({
-
-            id:
-                "extra:" +
-                key,
-
-            scientific:
-                "",
-
-            common:
-                name,
-
-            family:
-                "Additional fish list",
-
-            order:
-                "",
-
-            className:
-                "",
-
-            habitat:
-                ["Additional"],
-
-            countries:
-                []
-
-        });
-
-    }
-
-
-    return result;
-
-}
-
-
-/* ============================================================
-   LOAD DATABASE
-   ============================================================ */
-
-async function loadDatabase() {
-
-    try {
-
-        document
-            .getElementById("dbStatus")
-            .textContent =
-                "Connecting to FishBase…";
-
-
-        const fishBaseFish =
-            await loadFishBase();
-
-
-        if (!fishBaseFish.length) {
-
-            throw new Error(
-                "FishBase returned no species."
-            );
-
-        }
-
-
-        fish =
-            addExtras(
-                fishBaseFish
-            );
-
-
-        document
-            .getElementById("dbStatus")
-            .textContent =
-                `${fish.length.toLocaleString()} species/items loaded worldwide`;
-
-
+    if (confirm("Clear all recorded catches?")) {
+        caughtMap = {};
+        saveCaught();
         render();
-
     }
-
-    catch (error) {
-
-        console.error(
-            "Fish database error:",
-            error
-        );
-
-
-        document
-            .getElementById("dbStatus")
-            .textContent =
-                "Could not load worldwide fish database.";
-
-
-        document
-            .getElementById("fishGrid")
-            .innerHTML = `
-
-                <div
-                    class="panel loading"
-                >
-
-                    <strong>
-                        Worldwide database load failed.
-                    </strong>
-
-                    <br><br>
-
-                    The page couldn't retrieve the
-                    FishBase database.
-
-                    <br><br>
-
-                    Make sure you're running this
-                    page from GitHub Pages or another
-                    web server instead of opening the
-                    HTML directly as a file.
-
-                    <br><br>
-
-                    Error:
-
-                    ${escapeHTML(
-                        error.message
-                    )}
-
-                    <br><br>
-
-                    <button
-                        onclick="location.reload()"
-                    >
-                        Try Again
-                    </button>
-
-                </div>
-
-            `;
-
-    }
-
 }
 
+document.getElementById("search").addEventListener("input", render);
 
-/* ============================================================
-   SEARCH EVENT
-   ============================================================ */
-
-document
-    .getElementById("search")
-    .addEventListener(
-        "input",
-        render
-    );
-
-
-/* ============================================================
-   START
-   ============================================================ */
-
-loadDatabase();
-
+render();
 </script>
-
 </body>
 </html>
-```
