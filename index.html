@@ -1,0 +1,1752 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Worldwide Fish Index</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        font-family: Arial, Helvetica, sans-serif;
+        color: #f5fbff;
+        background:
+            radial-gradient(
+                circle at top left,
+                rgba(17, 147, 173, 0.18),
+                transparent 35%
+            ),
+            linear-gradient(
+                180deg,
+                #06151d 0%,
+                #09232d 100%
+            );
+        min-height: 100vh;
+    }
+
+    header {
+        padding: 34px 20px 26px;
+        text-align: center;
+        background:
+            linear-gradient(
+                135deg,
+                #08758a,
+                #063d4d
+            );
+        box-shadow: 0 5px 24px rgba(0,0,0,.35);
+    }
+
+    header h1 {
+        margin: 0 0 8px;
+        font-size: clamp(30px, 5vw, 48px);
+    }
+
+    header p {
+        margin: 0;
+        opacity: .88;
+    }
+
+    .container {
+        width: min(1500px, 95%);
+        margin: 24px auto 45px;
+    }
+
+    .panel {
+        background: rgba(10, 35, 45, .94);
+        border: 1px solid #1b4b5b;
+        border-radius: 16px;
+        box-shadow: 0 8px 28px rgba(0,0,0,.22);
+    }
+
+    .stats {
+        padding: 20px;
+        margin-bottom: 18px;
+    }
+
+    .stats-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 15px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    #progressText {
+        font-size: 21px;
+        font-weight: 800;
+    }
+
+    #dbStatus {
+        font-size: 13px;
+        opacity: .75;
+        text-align: right;
+    }
+
+    .progress {
+        margin-top: 14px;
+        height: 18px;
+        border-radius: 50px;
+        overflow: hidden;
+        background: #123b49;
+    }
+
+    #progressFill {
+        width: 0%;
+        height: 100%;
+        background:
+            linear-gradient(
+                90deg,
+                #18b8d2,
+                #53dfa7
+            );
+        transition: width .25s ease;
+    }
+
+    .controls {
+        padding: 16px;
+        margin-bottom: 18px;
+        display: grid;
+        grid-template-columns:
+            minmax(220px, 1fr)
+            repeat(5, auto);
+        gap: 10px;
+    }
+
+    input[type="search"] {
+        width: 100%;
+        border: 1px solid #2c6070;
+        background: #08212c;
+        color: white;
+        border-radius: 10px;
+        padding: 13px 14px;
+        outline: none;
+        font-size: 15px;
+    }
+
+    input[type="search"]:focus {
+        border-color: #20c5dd;
+        box-shadow:
+            0 0 0 3px rgba(32,197,221,.12);
+    }
+
+    button {
+        border: 0;
+        border-radius: 10px;
+        padding: 12px 16px;
+        font-weight: 800;
+        color: white;
+        background: #0e6375;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background: #157d92;
+    }
+
+    .danger {
+        background: #8b3232;
+    }
+
+    .danger:hover {
+        background: #aa3d3d;
+    }
+
+    .fish-grid {
+        display: grid;
+        grid-template-columns:
+            repeat(
+                auto-fill,
+                minmax(290px, 1fr)
+            );
+        gap: 12px;
+    }
+
+    .fish-card {
+        padding: 15px;
+        background: #0a2732;
+        border: 1px solid #1a4653;
+        border-radius: 14px;
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        transition:
+            transform .15s,
+            border-color .15s,
+            background .15s;
+    }
+
+    .fish-card:hover {
+        transform: translateY(-2px);
+        border-color: #2e7c8d;
+    }
+
+    .fish-card.caught {
+        background: #0b332b;
+        border-color: #1ca778;
+    }
+
+    .check {
+        width: 25px;
+        height: 25px;
+        min-width: 25px;
+        margin-top: 2px;
+        accent-color: #22bc82;
+        cursor: pointer;
+    }
+
+    .name {
+        font-weight: 800;
+        font-size: 16px;
+        line-height: 1.25;
+    }
+
+    .scientific {
+        margin-top: 4px;
+        font-size: 13px;
+        font-style: italic;
+        color: #afd0d8;
+    }
+
+    .meta {
+        margin-top: 7px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+
+    .tag {
+        display: inline-block;
+        padding: 4px 7px;
+        border-radius: 999px;
+        background: #123b47;
+        color: #bde6ed;
+        font-size: 11px;
+    }
+
+    .caught-label {
+        margin-left: auto;
+        font-size: 11px;
+        font-weight: 900;
+        color: #56e0ad;
+        white-space: nowrap;
+    }
+
+    #empty {
+        display: none;
+        text-align: center;
+        padding: 50px 20px;
+        opacity: .7;
+    }
+
+    .footer {
+        text-align: center;
+        padding: 26px 10px 0;
+        font-size: 12px;
+        opacity: .62;
+        line-height: 1.5;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 50px 20px;
+        opacity: .8;
+    }
+
+    .load-progress {
+        margin: 18px auto 0;
+        width: min(600px, 90%);
+        height: 12px;
+        background: #123b49;
+        border-radius: 20px;
+        overflow: hidden;
+    }
+
+    #loadProgressFill {
+        height: 100%;
+        width: 0%;
+        background:
+            linear-gradient(
+                90deg,
+                #18b8d2,
+                #53dfa7
+            );
+        transition: width .2s;
+    }
+
+    .load-status {
+        margin-top: 10px;
+        font-size: 13px;
+        opacity: .75;
+    }
+
+    .top-note {
+        margin-top: 10px;
+        font-size: 12px;
+        opacity: .65;
+    }
+
+    @media (max-width: 1100px) {
+        .controls {
+            grid-template-columns:
+                1fr 1fr 1fr;
+        }
+    }
+
+    @media (max-width: 950px) {
+        .controls {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    @media (max-width: 650px) {
+        .controls {
+            grid-template-columns: 1fr;
+        }
+
+        .fish-grid {
+            grid-template-columns: 1fr;
+        }
+
+        #dbStatus {
+            text-align: left;
+        }
+    }
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>🎣 Worldwide Fish Index</h1>
+
+    <p>
+        Track the fish species you've caught from around the entire world
+    </p>
+
+    <div class="top-note">
+        Powered by the FishBase species database
+    </div>
+</header>
+
+<main class="container">
+
+    <section class="panel stats">
+
+        <div class="stats-row">
+
+            <div id="progressText">
+                0 / 0 Caught
+            </div>
+
+            <div id="dbStatus">
+                Loading worldwide fish database…
+            </div>
+
+        </div>
+
+        <div class="progress">
+            <div id="progressFill"></div>
+        </div>
+
+    </section>
+
+    <section class="panel controls">
+
+        <input
+            id="search"
+            type="search"
+            placeholder="Search common name, scientific name, family, genus, order..."
+        >
+
+        <button onclick="setFilter('all')">
+            All
+        </button>
+
+        <button onclick="setFilter('caught')">
+            Caught
+        </button>
+
+        <button onclick="setFilter('uncaught')">
+            Uncaught
+        </button>
+
+        <button onclick="sortFish('name')">
+            A-Z
+        </button>
+
+        <button class="danger" onclick="resetCaught()">
+            Reset
+        </button>
+
+    </section>
+
+    <div id="fishGrid" class="fish-grid">
+
+        <div class="panel loading">
+
+            <strong>
+                Loading worldwide fish species…
+            </strong>
+
+            <div class="load-progress">
+                <div id="loadProgressFill"></div>
+            </div>
+
+            <div
+                id="loadStatus"
+                class="load-status"
+            >
+                Connecting to FishBase…
+            </div>
+
+        </div>
+
+    </div>
+
+    <div id="empty">
+        No fish match your search/filter.
+    </div>
+
+    <div class="footer">
+
+        Species data is loaded from FishBase.
+
+        <br>
+
+        FishBase provides a global database of fish species.
+        This page uses the FishBase API for non-commercial purposes
+        and retains attribution to FishBase.
+
+        <br><br>
+
+        Your caught status is stored locally in your browser
+        using localStorage.
+
+    </div>
+
+</main>
+
+
+<script>
+
+/* ============================================================
+   WORLDWIDE FISH DATABASE
+   ============================================================ */
+
+const API_URL =
+    "https://fishbase.ropensci.org/species";
+
+
+/*
+    Number of records requested from FishBase at a time.
+
+    500 is large enough to reduce the number of requests,
+    while keeping each response reasonably sized.
+*/
+const BATCH_SIZE = 500;
+
+
+/*
+    FishBase API supports pagination using:
+        limit
+        offset
+
+    We request only the fields needed by this website.
+*/
+const API_FIELDS = [
+    "SpecCode",
+    "Genus",
+    "Species",
+    "SubGenus",
+    "Family",
+    "Order",
+    "Class",
+    "FBname"
+].join(",");
+
+
+/*
+    localStorage key.
+
+    V3 is intentionally different from the old
+    North American version so old saved data doesn't
+    interfere with the worldwide database.
+*/
+const STORAGE_KEY =
+    "worldwideFishIndexCaughtV3";
+
+
+/* ============================================================
+   EXTRA FISH
+   ============================================================
+
+   These are retained from your old FishingBooker list.
+
+   FishBase should contain most real species already,
+   but these names are kept so your previous list doesn't
+   disappear when switching databases.
+*/
+
+const EXTRA_FISH = [
+
+    "Alligator Gar",
+    "Amberjack",
+    "Arapaima",
+    "Arctic Char",
+    "Asp",
+    "Atlantic Croaker",
+    "Banded Rudderfish",
+    "Barracuda (European)",
+    "Barracuda (Great)",
+    "Barracuda (Mexican)",
+    "Barracuda (Pacific)",
+    "Barracuda (Pickhandle)",
+    "Barracuda (Yellowmouth)",
+    "Barramundi",
+    "Bass (Australian)",
+    "Bass (Largemouth)",
+    "Bass (Peacock)",
+    "Bass (Rainbow)",
+    "Bass (Smallmouth)",
+    "Bass (Spotted Sand)",
+    "Bass (Spotted)",
+    "Bass (Striped)",
+    "Bass (White)",
+    "Bass (Yellow)",
+    "Black Drum",
+    "Black Jewfish",
+    "Black Rockfish",
+    "Black Seabream",
+    "Bluefish (Tailor)",
+    "Bluegill",
+    "Bluenose Warehou",
+    "Bohar Snapper",
+    "Bonefish",
+    "Bonefish (Cortez)",
+    "Bonefish (Roundjaw)",
+    "Bonito",
+    "Bowfin",
+    "Bream (Black)",
+    "Bream (Common)",
+    "Bream (Fingermark)",
+    "Brook Trout",
+    "Brown Trout",
+    "Bullhead",
+    "Burbot",
+    "Calico Bass",
+    "California Corbina",
+    "California Sheephead",
+    "Carp",
+    "Catfish",
+    "Cero Mackerel",
+    "Chain Pickerel",
+    "Clam",
+    "Clown Knife Fish",
+    "Coalfish",
+    "Cobia",
+    "Cod",
+    "Cod (Blue)",
+    "Cod (Breaksea)",
+    "Common Ling",
+    "Common Pandora",
+    "Conger Eel",
+    "Coral Trout",
+    "Coralgrouper (Roving)",
+    "Coralgrouper (Squaretail)",
+    "Crab",
+    "Crappie",
+    "Crayfish",
+    "Cutthroat Trout",
+    "Dentex",
+    "Dhufish",
+    "Dogfish",
+    "Dolly Varden",
+    "Dolphin (Mahi Mahi)",
+    "Drum (Shi)",
+    "Drummer (Rock Blackfish)",
+    "Flathead",
+    "Flathead Grey Mullet",
+    "Flounder",
+    "Freshwater Drum",
+    "Gar",
+    "Geelbek (Cape Salmon)",
+    "Golden Dorado",
+    "Grass Carp",
+    "Grayling",
+    "Grayling (Arctic)",
+    "Graysby (Pacific)",
+    "Grouper (Black)",
+    "Grouper (Broomtail)",
+    "Grouper (Camouflage)",
+    "Grouper (Dusky)",
+    "Grouper (Gag)",
+    "Grouper (Goliath)",
+    "Grouper (Greasy)",
+    "Grouper (Gulf)",
+    "Grouper (Hamour)",
+    "Grouper (Leopard)",
+    "Grouper (Malabar)",
+    "Grouper (Nassau)",
+    "Grouper (Orange-spotted)",
+    "Grouper (Potato)",
+    "Grouper (Red)",
+    "Grouper (Scamp)",
+    "Grouper (Snowy)",
+    "Grouper (Spotted)",
+    "Grouper (Warsaw)",
+    "Grouper (Yellow-edged Lyretail)",
+    "Grouper (Yellowedge)",
+    "Grouper (Yellowfin)",
+    "Grouper (Yellowmouth)",
+    "Grunt",
+    "Grunter (Javelin)",
+    "Gurnard",
+    "Haddock",
+    "Hake (Red)",
+    "Halibut",
+    "Halibut (California)",
+    "Hapuka",
+    "Herring",
+    "Hind (Coral)",
+    "Hind (Red)",
+    "Hogfish",
+    "Huchen",
+    "Hybrid Striped Bass",
+    "Indian Threadfish",
+    "Jack (African Pompano)",
+    "Jack (Almaco)",
+    "Jack (Horse-eye)",
+    "Jack (Pacific Crevalle)",
+    "Jack Crevalle",
+    "Jobfish (Green)",
+    "Jobfish (Rusty)",
+    "John Dory",
+    "King George Whiting",
+    "King Mackerel (Indo-Pacific)",
+    "King Mackerel (Kingfish)",
+    "Kingfish (Southern)",
+    "Kob",
+    "Ladyfish",
+    "Lake Trout",
+    "Leatherjacket",
+    "Leerfish (Garrick)",
+    "Lenok Trout",
+    "Lesser Amberjack",
+    "Lingcod",
+    "Lionfish",
+    "Little Tunny (False Albacore)",
+    "Lobster",
+    "Long-Tail Red Snapper (Onaga)",
+    "Mackerel (Atlantic Chub)",
+    "Mackerel (Atlantic)",
+    "Mackerel (Chub)",
+    "Mahseer",
+    "Marlin (Black)",
+    "Marlin (Blue)",
+    "Marlin (Striped)",
+    "Marlin (White)",
+    "Milkfish",
+    "Morwong",
+    "Murray Cod",
+    "Muskellunge (Musky)",
+    "Musselcracker",
+    "Nannygai",
+    "Needlefish",
+    "Nile Perch",
+    "North African Catfish",
+    "Nursehound (Bull Huss)",
+    "Paddlefish",
+    "Papuan Black Snapper",
+    "Payara",
+    "Peacock Hind",
+    "Pearl Perch",
+    "Pejerrey (Silverside)",
+    "Perch (European)",
+    "Perch (Golden)",
+    "Perch (Silver)",
+    "Perch (White)",
+    "Perch (Yellow)",
+    "Permit",
+    "Pike (Northern)",
+    "Pike Perch (Zander)",
+    "Pink Maomao",
+    "Pollock",
+    "Pompano",
+    "Pompano (Blackblotch)",
+    "Pompano (Paloma)",
+    "Queen Snapper (Australian)",
+    "Queen Snapper (Caribbean)",
+    "Queenfish",
+    "Queensland Groper (Giant Grouper)",
+    "Rainbow Runner",
+    "Rainbow Trout (Steelhead)",
+    "Ray",
+    "Red Porgy",
+    "Redfish",
+    "Rockfish",
+    "Roosterfish",
+    "Sailfish",
+    "Salmon",
+    "Salmon (Atlantic)",
+    "Salmon (Australian)",
+    "Salmon (Chinook)",
+    "Salmon (Chum)",
+    "Salmon (Coho)",
+    "Salmon (Kokanee)",
+    "Salmon (Pink)",
+    "Salmon (Sockeye)",
+    "Samson Fish",
+    "Sand Bass",
+    "Saratoga",
+    "Sauger",
+    "Scallop",
+    "Scorpionfish",
+    "Sculpin",
+    "Scup (Porgy)",
+    "Seabass (Black)",
+    "Seabass (European)",
+    "Seabass (Giant)",
+    "Seabass (White)",
+    "Seabream (Bronze)",
+    "Seabream (Gilt-head)",
+    "Seabream (Goldsilk)",
+    "Seabream (Slinger)",
+    "Seerfish (Streaked)",
+    "Shad",
+    "Shark (Atlantic Sharpnose)",
+    "Shark (Blacktip)",
+    "Shark (Blue)",
+    "Shark (Bonnethead)",
+    "Shark (Bull)",
+    "Shark (Greenland)",
+    "Shark (Gummy)",
+    "Shark (Hammerhead)",
+    "Shark (Lemon)",
+    "Shark (Leopard)",
+    "Shark (Mako)",
+    "Shark (Nurse)",
+    "Shark (Porbeagle)",
+    "Shark (Sandbar)",
+    "Shark (Thresher)",
+    "Shark (Tiger)",
+    "Shark (Tope)",
+    "Sharpsnout Seabream",
+    "Sheepshead",
+    "Short-Tail Red Snapper (Ehu)",
+    "Shrimp",
+    "Sierra Mackerel",
+    "Silver Hake",
+    "Skate",
+    "Snakehead",
+    "Snapper (Bigeye)",
+    "Snapper (Blackfin)",
+    "Snapper (Blacktail)",
+    "Snapper (Colorado)",
+    "Snapper (Crimson)",
+    "Snapper (Cubera)",
+    "Snapper (Dory)",
+    "Snapper (Lane)",
+    "Snapper (Malabar Blood)",
+    "Snapper (Mangrove Red)",
+    "Snapper (Mangrove)",
+    "Snapper (Mullet)",
+    "Snapper (Mutton)",
+    "Snapper (Pacific Dog)",
+    "Snapper (Pink)",
+    "Snapper (Red Emperor)",
+    "Snapper (Red Pacific)",
+    "Snapper (Red)",
+    "Snapper (Silk)",
+    "Snapper (Spotted Rose)",
+    "Snapper (Vermilion)",
+    "Snapper (Wenchman)",
+    "Snapper (Yellow)",
+    "Snapper (Yellowtail)",
+    "Snoek",
+    "Snook",
+    "Snubnose Pompano",
+    "Spadefish",
+    "Spangled Emperor",
+    "Spanish Mackerel",
+    "Spanish Mackerel (Narrow-barred)",
+    "Spearfish (Longbill)",
+    "Spearfish (Mediterranean)",
+    "Spearfish (Shortbill)",
+    "Speckled Hind",
+    "Speckled Trout",
+    "Sturgeon",
+    "Sunfish",
+    "Sweetlip Emperor",
+    "Swordfish",
+    "Taimen",
+    "Tarakihi",
+    "Tarpon",
+    "Tautog",
+    "Threadfin Salmon",
+    "Tigerfish",
+    "Tigerfish (Goliath)",
+    "Tilapia",
+    "Tilefish",
+    "Trevally (Bigeye)",
+    "Trevally (Blacktip)",
+    "Trevally (Bluefin)",
+    "Trevally (Brassy)",
+    "Trevally (Giant)",
+    "Trevally (Golden)",
+    "Trevally (Silver)",
+    "Triggerfish (Finescale)",
+    "Triggerfish (Gray)",
+    "Triggerfish (Rough)",
+    "Triggerfish (Stone)",
+    "Tripletail",
+    "Trumpeter (Striped)",
+    "Tuna (Albacore)",
+    "Tuna (Bigeye)",
+    "Tuna (Black Skipjack)",
+    "Tuna (Blackfin)",
+    "Tuna (Bluefin)",
+    "Tuna (Bullet)",
+    "Tuna (Dogtooth)",
+    "Tuna (Frigate)",
+    "Tuna (Kawakawa)",
+    "Tuna (Longtail)",
+    "Tuna (Skipjack)",
+    "Tuna (Yellowfin)",
+    "Wahoo",
+    "Walleye",
+    "Weakfish",
+    "Wels Catfish",
+    "White Seabream",
+    "Whitefish (Lake)",
+    "Whiting (European)",
+    "Wolffish",
+    "Wrasse (Bluethroat)",
+    "Wrasse (Humphead)",
+    "Yellowfish",
+    "Yellowtail Amberjack"
+
+];
+
+
+/* ============================================================
+   STATE
+   ============================================================ */
+
+let fish = [];
+
+let caught = loadCaught();
+
+let currentFilter = "all";
+
+let currentSort = "name";
+
+
+/* ============================================================
+   LOCAL STORAGE
+   ============================================================ */
+
+function loadCaught() {
+
+    try {
+
+        return JSON.parse(
+            localStorage.getItem(STORAGE_KEY) || "{}"
+        );
+
+    } catch {
+
+        return {};
+
+    }
+
+}
+
+
+function saveCaught() {
+
+    localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(caught)
+    );
+
+}
+
+
+/* ============================================================
+   ESCAPE HTML
+   ============================================================ */
+
+function escapeHTML(value) {
+
+    return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+
+}
+
+
+/* ============================================================
+   FISHBASE NORMALIZATION
+   ============================================================ */
+
+function normalizeFish(item) {
+
+    const genus =
+        item.Genus ||
+        "";
+
+    const species =
+        item.Species ||
+        "";
+
+    const scientific =
+        genus && species
+            ? `${genus} ${species}`
+            : genus || species || "Unknown species";
+
+    const family =
+        item.Family ||
+        "Unknown family";
+
+    const order =
+        item.Order ||
+        "";
+
+    const className =
+        item.Class ||
+        "";
+
+    const common =
+        item.FBname ||
+        scientific;
+
+    return {
+
+        id:
+            "fishbase:" +
+            String(
+                item.SpecCode ||
+                scientific
+            ),
+
+        scientific:
+            scientific,
+
+        common:
+            common.trim(),
+
+        family:
+            family,
+
+        order:
+            order,
+
+        className:
+            className,
+
+        habitat:
+            [],
+
+        countries:
+            []
+
+    };
+
+}
+
+
+/* ============================================================
+   CAUGHT CHECK
+   ============================================================ */
+
+function isCaught(item) {
+
+    return !!caught[item.id];
+
+}
+
+
+/* ============================================================
+   CARD
+   ============================================================ */
+
+function cardHTML(item) {
+
+    const caughtNow =
+        isCaught(item);
+
+    return `
+
+        <article
+            class="fish-card ${caughtNow ? "caught" : ""}"
+        >
+
+            <input
+                class="check"
+                type="checkbox"
+                ${caughtNow ? "checked" : ""}
+                aria-label="Mark ${escapeHTML(item.common)} as caught"
+                onchange="toggleCaught(
+                    '${encodeURIComponent(item.id)}',
+                    this.checked
+                )"
+            >
+
+            <div
+                style="min-width:0; flex:1;"
+            >
+
+                <div class="name">
+                    ${escapeHTML(item.common)}
+                </div>
+
+                <div class="scientific">
+                    ${escapeHTML(item.scientific)}
+                </div>
+
+                <div class="meta">
+
+                    ${
+                        item.family
+                        ? `
+                            <span class="tag">
+                                ${escapeHTML(item.family)}
+                            </span>
+                        `
+                        : ""
+                    }
+
+                    ${
+                        item.order
+                        ? `
+                            <span class="tag">
+                                ${escapeHTML(item.order)}
+                            </span>
+                        `
+                        : ""
+                    }
+
+                    ${
+                        item.className
+                        ? `
+                            <span class="tag">
+                                ${escapeHTML(item.className)}
+                            </span>
+                        `
+                        : ""
+                    }
+
+                </div>
+
+            </div>
+
+            ${
+                caughtNow
+                ? `
+                    <div class="caught-label">
+                        CAUGHT
+                    </div>
+                `
+                : ""
+            }
+
+        </article>
+
+    `;
+
+}
+
+
+/* ============================================================
+   SEARCH + FILTER
+   ============================================================ */
+
+function getVisibleFish() {
+
+    const q =
+        document
+            .getElementById("search")
+            .value
+            .trim()
+            .toLowerCase();
+
+
+    let results =
+        fish.filter(item => {
+
+            const searchText = [
+
+                item.common,
+                item.scientific,
+                item.family,
+                item.order,
+                item.className
+
+            ]
+                .join(" ")
+                .toLowerCase();
+
+
+            const matchesSearch =
+                !q ||
+                searchText.includes(q);
+
+
+            const matchesFilter =
+
+                currentFilter === "all" ||
+
+                (
+                    currentFilter === "caught" &&
+                    isCaught(item)
+                ) ||
+
+                (
+                    currentFilter === "uncaught" &&
+                    !isCaught(item)
+                );
+
+
+            return (
+                matchesSearch &&
+                matchesFilter
+            );
+
+        });
+
+
+    if (currentSort === "name") {
+
+        results.sort(
+            (a, b) =>
+                a.common.localeCompare(
+                    b.common
+                )
+        );
+
+    }
+
+
+    return results;
+
+}
+
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+
+function render() {
+
+    const visible =
+        getVisibleFish();
+
+    const grid =
+        document.getElementById(
+            "fishGrid"
+        );
+
+    const empty =
+        document.getElementById(
+            "empty"
+        );
+
+
+    if (!visible.length) {
+
+        grid.innerHTML = "";
+
+        empty.style.display =
+            "block";
+
+    } else {
+
+        empty.style.display =
+            "none";
+
+        grid.innerHTML =
+            visible
+                .map(cardHTML)
+                .join("");
+
+    }
+
+
+    updateProgress();
+
+}
+
+
+/* ============================================================
+   PROGRESS
+   ============================================================ */
+
+function updateProgress() {
+
+    const total =
+        fish.length;
+
+    const amountCaught =
+        fish.filter(
+            isCaught
+        ).length;
+
+    const percent =
+        total
+            ? Math.round(
+                (amountCaught / total) * 100
+            )
+            : 0;
+
+
+    document
+        .getElementById("progressText")
+        .textContent =
+            `${amountCaught.toLocaleString()} / ${total.toLocaleString()} Caught`;
+
+
+    document
+        .getElementById("progressFill")
+        .style.width =
+            `${percent}%`;
+
+}
+
+
+/* ============================================================
+   TOGGLE CAUGHT
+   ============================================================ */
+
+function toggleCaught(
+    encodedId,
+    value
+) {
+
+    const id =
+        decodeURIComponent(
+            encodedId
+        );
+
+
+    if (value) {
+
+        caught[id] =
+            true;
+
+    } else {
+
+        delete caught[id];
+
+    }
+
+
+    saveCaught();
+
+    render();
+
+}
+
+
+/* ============================================================
+   FILTER
+   ============================================================ */
+
+function setFilter(filter) {
+
+    currentFilter =
+        filter;
+
+    render();
+
+}
+
+
+/* ============================================================
+   SORT
+   ============================================================ */
+
+function sortFish(type) {
+
+    currentSort =
+        type;
+
+    render();
+
+}
+
+
+/* ============================================================
+   RESET
+   ============================================================ */
+
+function resetCaught() {
+
+    const confirmed =
+        confirm(
+            "Reset every caught fish?"
+        );
+
+
+    if (!confirmed) {
+        return;
+    }
+
+
+    caught = {};
+
+    saveCaught();
+
+    render();
+
+}
+
+
+/* ============================================================
+   UPDATE LOADING UI
+   ============================================================ */
+
+function updateLoading(
+    loaded,
+    total
+) {
+
+    const status =
+        document.getElementById(
+            "loadStatus"
+        );
+
+    const fill =
+        document.getElementById(
+            "loadProgressFill"
+        );
+
+
+    if (total) {
+
+        const percent =
+            Math.min(
+                100,
+                Math.round(
+                    (loaded / total) * 100
+                )
+            );
+
+        fill.style.width =
+            `${percent}%`;
+
+        status.textContent =
+            `Loaded ${loaded.toLocaleString()} of approximately ${total.toLocaleString()} species…`;
+
+    } else {
+
+        status.textContent =
+            `Loaded ${loaded.toLocaleString()} species…`;
+
+    }
+
+}
+
+
+/* ============================================================
+   FETCH ONE BATCH
+   ============================================================ */
+
+async function fetchBatch(
+    offset
+) {
+
+    const url =
+        `${API_URL}?limit=${BATCH_SIZE}&offset=${offset}&fields=${encodeURIComponent(API_FIELDS)}`;
+
+
+    const response =
+        await fetch(
+            url,
+            {
+                cache: "no-store"
+            }
+        );
+
+
+    if (!response.ok) {
+
+        throw new Error(
+            `FishBase HTTP ${response.status}`
+        );
+
+    }
+
+
+    return await response.json();
+
+}
+
+
+/* ============================================================
+   LOAD ALL FISHBASE SPECIES
+   ============================================================ */
+
+async function loadFishBase() {
+
+    let offset = 0;
+
+    let total = null;
+
+    const loaded = [];
+
+
+    while (true) {
+
+        const data =
+            await fetchBatch(
+                offset
+            );
+
+
+        /*
+            FishBase API responses contain:
+                count
+                returned
+                data
+
+            The code also accepts an array directly
+            in case the API response format changes.
+        */
+
+        const rows =
+            Array.isArray(data)
+                ? data
+                : (
+                    Array.isArray(data.data)
+                        ? data.data
+                        : []
+                );
+
+
+        if (total === null) {
+
+            total =
+                Number(
+                    data.count
+                ) || null;
+
+        }
+
+
+        if (!rows.length) {
+            break;
+        }
+
+
+        for (const row of rows) {
+
+            const item =
+                normalizeFish(row);
+
+
+            if (
+                item.scientific &&
+                item.scientific !==
+                    "Unknown species"
+            ) {
+
+                loaded.push(
+                    item
+                );
+
+            }
+
+        }
+
+
+        offset +=
+            rows.length;
+
+
+        updateLoading(
+            loaded.length,
+            total
+        );
+
+
+        /*
+            Stop if FishBase tells us we've
+            reached the end.
+        */
+
+        if (
+            total &&
+            offset >= total
+        ) {
+
+            break;
+
+        }
+
+
+        /*
+            Safety check.
+
+            If the API returns fewer records than
+            requested, we've probably reached the end.
+        */
+
+        if (
+            rows.length < BATCH_SIZE
+        ) {
+
+            break;
+
+        }
+
+
+        /*
+            Give the browser a tiny break between
+            batches so the page stays responsive.
+        */
+
+        await new Promise(
+            resolve =>
+                setTimeout(
+                    resolve,
+                    20
+                )
+        );
+
+    }
+
+
+    return loaded;
+
+}
+
+
+/* ============================================================
+   ADD YOUR OLD EXTRA LIST
+   ============================================================ */
+
+function addExtras(
+    baseFish
+) {
+
+    const result =
+        [...baseFish];
+
+    const seen =
+        new Set();
+
+
+    /*
+        First mark all FishBase names.
+    */
+
+    for (const item of result) {
+
+        seen.add(
+            item.common
+                .trim()
+                .toLowerCase()
+        );
+
+    }
+
+
+    /*
+        Add FishingBooker names only when
+        FishBase doesn't already have that
+        common name.
+    */
+
+    for (
+        const name of EXTRA_FISH
+    ) {
+
+        const key =
+            name
+                .trim()
+                .toLowerCase();
+
+
+        if (seen.has(key)) {
+            continue;
+        }
+
+
+        seen.add(key);
+
+
+        result.push({
+
+            id:
+                "extra:" +
+                key,
+
+            scientific:
+                "",
+
+            common:
+                name,
+
+            family:
+                "Additional fish list",
+
+            order:
+                "",
+
+            className:
+                "",
+
+            habitat:
+                ["Additional"],
+
+            countries:
+                []
+
+        });
+
+    }
+
+
+    return result;
+
+}
+
+
+/* ============================================================
+   LOAD DATABASE
+   ============================================================ */
+
+async function loadDatabase() {
+
+    try {
+
+        document
+            .getElementById("dbStatus")
+            .textContent =
+                "Connecting to FishBase…";
+
+
+        const fishBaseFish =
+            await loadFishBase();
+
+
+        if (!fishBaseFish.length) {
+
+            throw new Error(
+                "FishBase returned no species."
+            );
+
+        }
+
+
+        fish =
+            addExtras(
+                fishBaseFish
+            );
+
+
+        document
+            .getElementById("dbStatus")
+            .textContent =
+                `${fish.length.toLocaleString()} species/items loaded worldwide`;
+
+
+        render();
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Fish database error:",
+            error
+        );
+
+
+        document
+            .getElementById("dbStatus")
+            .textContent =
+                "Could not load worldwide fish database.";
+
+
+        document
+            .getElementById("fishGrid")
+            .innerHTML = `
+
+                <div
+                    class="panel loading"
+                >
+
+                    <strong>
+                        Worldwide database load failed.
+                    </strong>
+
+                    <br><br>
+
+                    The page couldn't retrieve the
+                    FishBase database.
+
+                    <br><br>
+
+                    Make sure you're running this
+                    page from GitHub Pages or another
+                    web server instead of opening the
+                    HTML directly as a file.
+
+                    <br><br>
+
+                    Error:
+
+                    ${escapeHTML(
+                        error.message
+                    )}
+
+                    <br><br>
+
+                    <button
+                        onclick="location.reload()"
+                    >
+                        Try Again
+                    </button>
+
+                </div>
+
+            `;
+
+    }
+
+}
+
+
+/* ============================================================
+   SEARCH EVENT
+   ============================================================ */
+
+document
+    .getElementById("search")
+    .addEventListener(
+        "input",
+        render
+    );
+
+
+/* ============================================================
+   START
+   ============================================================ */
+
+loadDatabase();
+
+</script>
+
+</body>
+</html>
+```
