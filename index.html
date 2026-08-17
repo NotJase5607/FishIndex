@@ -239,6 +239,58 @@
     }
 
     #empty { display: none; text-align: center; padding: 40px; opacity: .7; }
+
+    /* ---- Crop/Edit modal ---- */
+    .crop-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        background: rgba(3, 12, 16, .82);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+    }
+    .crop-modal-box {
+        background: #0a2732;
+        border: 1px solid #2c6070;
+        border-radius: 14px;
+        padding: 18px;
+        width: min(600px, 100%);
+        box-shadow: 0 12px 40px rgba(0,0,0,.5);
+    }
+    .crop-title { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+    .crop-hint { font-size: 12px; color: #afd0d8; margin-bottom: 12px; }
+    .crop-viewport {
+        width: 100%;
+        height: 240px;               /* fixed height so the viewport never collapses */
+        overflow: hidden;
+        position: relative;
+        background: #061821;
+        border: 1px solid #2c6070;
+        border-radius: 8px;
+        cursor: grab;
+        touch-action: none;
+    }
+    @media (max-width: 480px) { .crop-viewport { height: 200px; } }
+    .crop-viewport.dragging { cursor: grabbing; }
+    .crop-viewport canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        user-select: none;
+        -webkit-user-drag: none;
+    }
+    .crop-controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 14px 0 4px;
+    }
+    .crop-controls label { font-size: 12px; color: #afd0d8; font-weight: 800; }
+    .crop-controls input[type="range"] { flex: 1; accent-color: #20c5dd; min-width: 0; }
+    .crop-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 12px; }
 </style>
 </head>
 
@@ -284,6 +336,25 @@
     <div id="empty">No species matching your criteria.</div>
 
     <input type="file" id="cardImageInput" accept="image/*" style="display:none">
+
+    <!-- Crop/Edit modal -->
+    <div id="cropModal" class="crop-modal" style="display:none">
+        <div class="crop-modal-box">
+            <div class="crop-title">📷 Position &amp; Crop</div>
+            <div class="crop-hint">Drag to move the photo &middot; use the slider or scroll to zoom in/out</div>
+            <div class="crop-viewport" id="cropViewport">
+                <canvas id="cropCanvas"></canvas>
+            </div>
+            <div class="crop-controls">
+                <label for="cropZoom">Zoom</label>
+                <input type="range" id="cropZoom" min="1" max="6" step="0.01" value="1">
+            </div>
+            <div class="crop-actions">
+                <button class="secondary" id="cropCancel">Cancel</button>
+                <button class="active" id="cropDone">Done</button>
+            </div>
+        </div>
+    </div>
 
 </main>
 
@@ -3319,18 +3390,217 @@ function removeImage(key) {
     render();
 }
 
-document.getElementById('cardImageInput').addEventListener('change', function (e) {
+/* ============ Crop/Edit image flow ============ */
+
+let cropState = {
+    source: null,       // drawable source: ImageBitmap or HTMLImageElement (fully loaded)
+    url: null,          // object URL to revoke on close
+    natW: 0, natH: 0,   // natural pixel dimensions
+    baseScale: 1,       // scale that makes image cover the viewport
+    zoom: 1,            // user zoom multiplier (1 = fit/crop at viewport)
+    tx: 0, ty: 0        // rendered top-left offset within viewport (px)
+};
+
+const cropModal = document.getElementById('cropModal');
+const cropViewport = document.getElementById('cropViewport');
+const cropCanvas = document.getElementById('cropCanvas');
+const cropZoom = document.getElementById('cropZoom');
+
+// Load the chosen file, decode it fully, then open the crop editor.
+function openCropEditor(file) {
+    if (window.createImageBitmap) {
+        createImageBitmap(file, { imageOrientation: 'from-image' }).then(function (bitmap) {
+            startEditor(bitmap, bitmap.width, bitmap.height);
+        }).catch(function () {
+            loadViaImage(file);
+        });
+    } else {
+        loadViaImage(file);
+    }
+}
+
+// Fallback: load through an <img> and wait for it to fully decode before editing.
+function loadViaImage(file) {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = function () {
+        cropState.url = url;
+        startEditor(img, img.naturalWidth, img.naturalHeight);
+    };
+    img.onerror = function () {
+        URL.revokeObjectURL(url);
+        alert('Sorry, that image could not be loaded.');
+    };
+    img.src = url;
+}
+
+// Size the canvas to the visible viewport, then show the editor and center the image.
+function startEditor(source, w, h) {
+    cropState.source = source;
+    cropState.natW = w;
+    cropState.natH = h;
+
+    // Show the modal BEFORE measuring, so the viewport has real dimensions.
+    cropModal.style.display = 'flex';
+    cropCanvas.width = cropViewport.clientWidth;
+    cropCanvas.height = cropViewport.clientHeight;
+
+    // Start centered, zoomed just enough to cover the crop area (like object-fit: cover).
+    const vw = cropCanvas.width;
+    const vh = cropCanvas.height;
+    cropState.baseScale = Math.max(vw / w, vh / h);
+    cropState.zoom = 1;
+    const dw = w * cropState.baseScale;
+    const dh = h * cropState.baseScale;
+    cropState.tx = (vw - dw) / 2;
+    cropState.ty = (vh - dh) / 2;
+
+    cropZoom.value = 1;
+    redraw();
+}
+
+function closeCropEditor() {
+    cropModal.style.display = 'none';
+    const ctx = cropCanvas.getContext('2d');
+    ctx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
+    if (cropState.source && typeof cropState.source.close === 'function') {
+        cropState.source.close();
+    }
+    if (cropState.url) { URL.revokeObjectURL(cropState.url); cropState.url = null; }
+    cropState.source = null;
+    cropState.natW = 0; cropState.natH = 0;
+}
+
+// Draw the image on the canvas at its current position/zoom.
+function redraw() {
+    if (!cropState.source) return;
+    const vw = cropCanvas.width;
+    const vh = cropCanvas.height;
+    const scale = cropState.baseScale * cropState.zoom;
+    const dw = cropState.natW * scale;
+    const dh = cropState.natH * scale;
+
+    // Keep the image covering the crop area at all times
+    cropState.tx = Math.min(0, Math.max(vw - dw, cropState.tx));
+    cropState.ty = Math.min(0, Math.max(vh - dh, cropState.ty));
+
+    const ctx = cropCanvas.getContext('2d');
+    ctx.clearRect(0, 0, vw, vh);
+    ctx.fillStyle = '#061821';
+    ctx.fillRect(0, 0, vw, vh);
+    ctx.setTransform(scale, 0, 0, scale, cropState.tx, cropState.ty);
+    ctx.drawImage(cropState.source, 0, 0);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+}
+
+// --- Drag to move (mouse + touch) ---
+let dragStartX = 0, dragStartY = 0, dragStartTx = 0, dragStartTy = 0, dragging = false;
+
+cropViewport.addEventListener('pointerdown', function (e) {
+    dragging = true;
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+    dragStartTx = cropState.tx;
+    dragStartTy = cropState.ty;
+    cropViewport.classList.add('dragging');
+    cropViewport.setPointerCapture(e.pointerId);
+});
+
+cropViewport.addEventListener('pointermove', function (e) {
+    if (!dragging) return;
+    cropState.tx = dragStartTx + (e.clientX - dragStartX);
+    cropState.ty = dragStartTy + (e.clientY - dragStartY);
+    redraw();
+});
+
+function endDrag(e) {
+    if (!dragging) return;
+    dragging = false;
+    cropViewport.classList.remove('dragging');
+}
+cropViewport.addEventListener('pointerup', endDrag);
+cropViewport.addEventListener('pointercancel', endDrag);
+
+// --- Zoom ---
+cropZoom.addEventListener('input', function () {
+    cropState.zoom = parseFloat(cropZoom.value);
+    redraw();
+});
+
+// Mouse wheel / pinch-trackpad zoom (zooms toward cursor)
+cropViewport.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
+    setCropZoom(cropState.zoom * factor);
+}, { passive: false });
+
+function setCropZoom(newZoom) {
+    newZoom = Math.min(6, Math.max(1, newZoom));
+    cropZoom.value = newZoom;
+    cropState.zoom = newZoom;
+    redraw();
+}
+
+// --- Done: crop the exact visible area and save it ---
+document.getElementById('cropDone').addEventListener('click', function () {
+    if (!cropState.source || !activeUploadKey) return;
+
+    const vw = cropCanvas.width;
+    const vh = cropCanvas.height;
+    const scale = cropState.baseScale * cropState.zoom;
+
+    // Visible crop-area rectangle mapped back to source-image pixel coordinates
+    let sx = -cropState.tx / scale;
+    let sy = -cropState.ty / scale;
+    let sw = vw / scale;
+    let sh = vh / scale;
+
+    // Clamp to the actual image bounds (float drift safety)
+    sx = Math.max(0, Math.min(sx, cropState.natW));
+    sy = Math.max(0, Math.min(sy, cropState.natH));
+    sw = Math.min(sw, cropState.natW - sx);
+    sh = Math.min(sh, cropState.natH - sy);
+    if (sw < 1 || sh < 1) {
+        alert('Please position the photo within the crop area before saving.');
+        return;
+    }
+
+    // Render at 2x crop-area resolution for a crisp saved photo
+    const outW = Math.max(1, Math.round(vw * 2));
+    const outH = Math.max(1, Math.round(vh * 2));
+    const canvas = document.createElement('canvas');
+    canvas.width = outW;
+    canvas.height = outH;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(cropState.source, sx, sy, sw, sh, 0, 0, outW, outH);
+
+    const record = getFishRecord(activeUploadKey);
+    record.img = canvas.toDataURL('image/jpeg', 0.9);
+    saveStorage();
+    closeCropEditor();
+    render();
+});
+
+// --- Cancel: keep the previous image, close the editor ---
+document.getElementById('cropCancel').addEventListener('click', function () {
+    closeCropEditor();
+});
+
+// Keep the crop in bounds if the window is resized
+window.addEventListener('resize', function () {
+    if (cropModal.style.display === 'none') return;
+    cropCanvas.width = cropViewport.clientWidth;
+    cropCanvas.height = cropViewport.clientHeight;
+    cropState.baseScale = Math.max(cropCanvas.width / cropState.natW, cropCanvas.height / cropState.natH);
+    redraw();
+});
+
+// Open the crop editor instead of saving the image directly
+const CROP_FILE_INPUT = document.getElementById('cardImageInput');
+CROP_FILE_INPUT.addEventListener('change', function (e) {
     const file = e.target.files[0];
     if (!file || !activeUploadKey) return;
-
-    const reader = new FileReader();
-    reader.onload = function (event) {
-        const record = getFishRecord(activeUploadKey);
-        record.img = event.target.result;
-        saveStorage();
-        render();
-    };
-    reader.readAsDataURL(file);
+    openCropEditor(file);
 });
 
 function render() {
